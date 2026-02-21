@@ -1,15 +1,15 @@
 import { Nav } from "@/components/layout/Nav";
 import { Footer } from "@/components/layout/Footer";
-import { HeroSection } from "@/components/concepts/concept3/HeroSection";
-import { FeaturesSection } from "@/components/concepts/concept3/FeaturesSection";
-import { SocialProofSection } from "@/components/concepts/concept3/SocialProofSection";
-import { DashboardMockSection } from "@/components/concepts/concept3/DashboardMockSection";
-import { CTASection } from "@/components/concepts/concept3/CTASection";
+import { HeroSection } from "@/components/concepts/concept2/HeroSection";
+import { FeaturesSection } from "@/components/concepts/concept2/FeaturesSection";
+import { SocialProofSection } from "@/components/concepts/concept2/SocialProofSection";
+import { DashboardMockSection } from "@/components/concepts/concept2/DashboardMockSection";
+import { CTASection } from "@/components/concepts/concept2/CTASection";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen">
-      <Nav />
+    <div className="min-h-screen bg-black">
+      <Nav variant="dark" />
       <main>
         <HeroSection />
         <FeaturesSection />
@@ -17,7 +17,7 @@ export default function HomePage() {
         <DashboardMockSection />
         <CTASection />
       </main>
-      <Footer />
+      <Footer variant="dark" />
     </div>
   );
 }

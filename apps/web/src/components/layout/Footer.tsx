@@ -14,7 +14,7 @@ export function Footer({ variant = "light", className }: FooterProps) {
       className={cn(
         "border-t py-12",
         isDark
-          ? "border-white/10 bg-slate-950 text-slate-400"
+          ? "border-gray-800 bg-black text-gray-500"
           : "border-slate-200 bg-slate-50 text-slate-500",
         className
       )}
@@ -24,20 +24,27 @@ export function Footer({ variant = "light", className }: FooterProps) {
           <div className="flex items-center gap-2.5">
             <div
               className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-md font-bold text-xs",
-                isDark ? "bg-white/10 text-white" : "bg-slate-200 text-slate-600"
+                "flex h-7 w-7 items-center justify-center rounded-md font-black text-xs",
+                isDark
+                  ? "bg-gradient-to-br from-fuchsia-600/30 to-pink-600/30 text-fuchsia-400"
+                  : "bg-slate-200 text-slate-600"
               )}
             >
               TL
             </div>
-            <span className="text-sm font-medium">Community Tier Lists</span>
+            <span className={cn(
+              "text-sm font-medium",
+              isDark ? "text-gray-400" : "text-slate-500"
+            )}>
+              Community Tier Lists
+            </span>
           </div>
           <nav className="flex items-center gap-6 text-sm">
             <Link
               href="/privacy"
               className={cn(
                 "transition-colors",
-                isDark ? "hover:text-white" : "hover:text-slate-900"
+                isDark ? "hover:text-fuchsia-400" : "hover:text-slate-900"
               )}
             >
               Privacy
@@ -46,7 +53,7 @@ export function Footer({ variant = "light", className }: FooterProps) {
               href="/dashboard"
               className={cn(
                 "transition-colors",
-                isDark ? "hover:text-white" : "hover:text-slate-900"
+                isDark ? "hover:text-fuchsia-400" : "hover:text-slate-900"
               )}
             >
               Dashboard

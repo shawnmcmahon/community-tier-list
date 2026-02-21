@@ -30,15 +30,15 @@ export function HeroSection() {
           </motion.div>
 
           <motion.h1
-            className="text-6xl sm:text-7xl lg:text-8xl xl:text-9xl font-black uppercase tracking-tighter leading-none"
+            className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black uppercase tracking-tighter leading-none"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
           >
-            <span className="text-white">TIER</span>
+            <span className="text-white">COMMUNITY</span>
             <br />
-            <span className="bg-gradient-to-r from-fuchsia-500 via-pink-500 to-cyan-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(236,72,153,0.4)]">
-              LISTS
+            <span className="bg-gradient-to-r from-fuchsia-500 via-pink-500 to-cyan-400 bg-clip-text text-transparent pb-1 inline-block">
+              TIER LISTS
             </span>
           </motion.h1>
 

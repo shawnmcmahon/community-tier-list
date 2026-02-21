@@ -21,7 +21,7 @@ export function Nav({ variant = "light", className }: NavProps) {
       className={cn(
         "sticky top-0 z-50 w-full border-b backdrop-blur-lg",
         isDark
-          ? "border-white/10 bg-slate-950/80 text-white"
+          ? "border-gray-800 bg-black/80 text-white"
           : isTransparent
             ? "border-transparent bg-transparent text-slate-900"
             : "border-slate-200/80 bg-white/80 text-slate-900",
@@ -32,13 +32,18 @@ export function Nav({ variant = "light", className }: NavProps) {
         <Link href="/" className="flex items-center gap-2.5">
           <div
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-lg font-bold text-sm",
-              isDark ? "bg-white text-slate-900" : "bg-slate-900 text-white"
+              "flex h-8 w-8 items-center justify-center rounded-lg font-black text-sm",
+              isDark
+                ? "bg-gradient-to-br from-fuchsia-600 to-pink-600 text-white"
+                : "bg-slate-900 text-white"
             )}
           >
             TL
           </div>
-          <span className="font-semibold tracking-tight text-lg hidden sm:block">
+          <span className={cn(
+            "font-bold tracking-tight text-lg hidden sm:block",
+            isDark ? "text-white" : "text-slate-900"
+          )}>
             Community Tier Lists
           </span>
         </Link>
@@ -55,30 +60,13 @@ export function Nav({ variant = "light", className }: NavProps) {
               className={cn(
                 "px-3 py-2 text-sm font-medium rounded-lg transition-colors",
                 isDark
-                  ? "text-slate-300 hover:text-white hover:bg-white/10"
+                  ? "text-gray-400 hover:text-fuchsia-400 hover:bg-fuchsia-500/10"
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
               )}
             >
               {link.label}
             </Link>
           ))}
-          <div className="ml-2 flex items-center gap-2">
-            <span className="text-xs text-slate-400 mr-1">Concepts:</span>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Link
-                key={n}
-                href={`/${n}`}
-                className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-md text-xs font-medium transition-colors",
-                  isDark
-                    ? "text-slate-400 hover:text-white hover:bg-white/10 border border-white/10"
-                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-100 border border-slate-200"
-                )}
-              >
-                {n}
-              </Link>
-            ))}
-          </div>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -88,7 +76,7 @@ export function Nav({ variant = "light", className }: NavProps) {
               size="sm"
               className={cn(
                 isDark &&
-                  "border-white/20 text-white hover:bg-white/10 hover:text-white"
+                  "border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/10 hover:text-fuchsia-300 hover:border-fuchsia-400/50"
               )}
             >
               Sign in
@@ -98,7 +86,7 @@ export function Nav({ variant = "light", className }: NavProps) {
             <Button
               size="sm"
               className={cn(
-                isDark && "bg-white text-slate-900 hover:bg-slate-100"
+                isDark && "bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white hover:from-fuchsia-500 hover:to-pink-500 shadow-sm shadow-fuchsia-500/20"
               )}
             >
               Get Started
@@ -139,7 +127,7 @@ export function Nav({ variant = "light", className }: NavProps) {
         <div
           className={cn(
             "md:hidden border-t px-6 py-4 space-y-2",
-            isDark ? "border-white/10 bg-slate-950" : "border-slate-200 bg-white"
+            isDark ? "border-gray-800 bg-black" : "border-slate-200 bg-white"
           )}
         >
           {[
@@ -152,30 +140,13 @@ export function Nav({ variant = "light", className }: NavProps) {
               href={link.href}
               className={cn(
                 "block px-3 py-2 text-sm font-medium rounded-lg",
-                isDark ? "text-slate-300 hover:bg-white/10" : "text-slate-600 hover:bg-slate-100"
+                isDark ? "text-gray-400 hover:bg-fuchsia-500/10 hover:text-fuchsia-400" : "text-slate-600 hover:bg-slate-100"
               )}
               onClick={() => setMobileOpen(false)}
             >
               {link.label}
             </Link>
           ))}
-          <div className="flex gap-2 pt-2">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Link
-                key={n}
-                href={`/${n}`}
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium border",
-                  isDark
-                    ? "text-slate-400 border-white/10 hover:bg-white/10"
-                    : "text-slate-500 border-slate-200 hover:bg-slate-100"
-                )}
-                onClick={() => setMobileOpen(false)}
-              >
-                {n}
-              </Link>
-            ))}
-          </div>
         </div>
       )}
     </header>
