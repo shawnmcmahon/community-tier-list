@@ -12,7 +12,8 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "typecheck": "turbo typecheck",
-    "dev:web": "npm run dev --workspace=apps/web"
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:realtime": "npm run dev --workspace=apps/realtime"
   },
   "devDependencies": {
     "turbo": "^2"
