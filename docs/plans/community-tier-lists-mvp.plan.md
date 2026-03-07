@@ -141,6 +141,43 @@ This file preserves the external planning doc in-repo for reference. It is a nor
   - whether Twitch chat-linked voters are shown by Twitch display name
 - Add tests covering mixed anonymous and Twitch participants, reconnect behavior, and roster accuracy after re-votes/disconnects.
 
+### Twitch Chat Voting Integration
+
+- Add a separate post-MVP feature track for Twitch chat-driven voting alongside the existing browser session flow.
+- Support connecting a host session to the streamer's Twitch chat using an approved Twitch integration path.
+- Define chat vote commands and product rules, for example:
+  - `!vote s`
+  - `!vote a`
+  - one counted vote per Twitch user for the currently staged item
+- Decide whether chat votes are:
+  - merged with browser votes into one distribution
+  - shown as a separate audience source
+  - optional per session via a host toggle
+- Add identity and anti-abuse rules before implementation:
+  - dedupe per Twitch user
+  - ignore votes while voting is closed
+  - moderator or broadcaster override rules
+  - spam and rate-limit handling
+- Evaluate Twitch integration approach and operational constraints:
+  - Twitch IRC/chat client vs EventSub-compatible approach
+  - reconnect handling
+  - channel authorization and token refresh
+  - moderation and banned-user behavior
+- Add backend and realtime changes for:
+  - ingesting chat vote events
+  - translating chat messages into vote upserts
+  - attributing vote source as browser or chat
+  - exposing source-aware vote and participation analytics
+- Add host UI for:
+  - enabling chat voting
+  - showing chat connection status
+  - surfacing chat-specific errors and moderation warnings
+- Add tests covering:
+  - duplicate chat messages
+  - reconnect and replay safety
+  - mixed browser plus chat voting
+  - invalid commands and moderation edge cases
+
 ### Marketing Exploration
 
 - Future idea captured in `docs/plans/future-marketing-ideas.md`:
