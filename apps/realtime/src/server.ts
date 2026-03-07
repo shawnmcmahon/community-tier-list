@@ -1,12 +1,15 @@
-import "dotenv/config";
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { createServer } from "node:http";
 
 import cors from "cors";
 import { ConvexHttpClient } from "convex/browser";
+import dotenv from "dotenv";
 import { Server, type Socket } from "socket.io";
 
-import { api } from "../../web/convex/_generated/api.ts";
+import * as apiModule from "../../web/convex/_generated/api.js";
 import { verifyHostJwt, type HostJwtPayload } from "./lib/hostJwt.ts";
 import {
   canAcceptVote,
@@ -14,6 +17,20 @@ import {
   resolveVoterKey,
   type Tier,
 } from "./lib/sessionState.ts";
+
+const { api } = apiModule;
+
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const envFiles = [
+  resolve(currentDir, "../.env.local"),
+  resolve(currentDir, "../../../.env.local"),
+];
+
+for (const envFile of envFiles) {
+  if (existsSync(envFile)) {
+    dotenv.config({ path: envFile, override: false });
+  }
+}
 
 type SessionDoc = {
   _id: string;
@@ -136,6 +153,8 @@ async function emitSessionStateToSocket(socket: Socket<any, any, any, SocketData
     currentStagedItemId: session.currentStagedItemId ?? null,
     updatedAt: session.updatedAt,
   });
+
+  await emitVoteDistributionToSocket(socket, session);
 }
 
 async function emitSessionStateToRoom(sessionSlug: string): Promise<void> {
@@ -147,6 +166,61 @@ async function emitSessionStateToRoom(sessionSlug: string): Promise<void> {
     voteWindowOpen: session.voteWindowOpen,
     currentStagedItemId: session.currentStagedItemId ?? null,
     updatedAt: session.updatedAt,
+  });
+
+  await emitVoteDistributionToRoom(session);
+}
+
+async function emitVoteDistributionToSocket(
+  socket: Socket<any, any, any, SocketData>,
+  session: SessionDoc,
+): Promise<void> {
+  if (!session.currentStagedItemId) {
+    socket.emit("votes:distribution", {
+      itemId: null,
+      S: 0,
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0,
+      totalVotes: 0,
+      avgScore: null,
+    });
+    return;
+  }
+
+  const distribution = await convex.query((api as any).votes.distributionByItem, {
+    itemId: session.currentStagedItemId,
+  });
+
+  socket.emit("votes:distribution", {
+    itemId: session.currentStagedItemId,
+    ...distribution,
+  });
+}
+
+async function emitVoteDistributionToRoom(session: SessionDoc): Promise<void> {
+  if (!session.currentStagedItemId) {
+    io.to(roomForSession(session.slug)).emit("votes:distribution", {
+      itemId: null,
+      S: 0,
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0,
+      totalVotes: 0,
+      avgScore: null,
+    });
+    return;
+  }
+
+  const distribution = await convex.query((api as any).votes.distributionByItem, {
+    itemId: session.currentStagedItemId,
+  });
+
+  io.to(roomForSession(session.slug)).emit("votes:distribution", {
+    itemId: session.currentStagedItemId,
+    ...distribution,
   });
 }
 
