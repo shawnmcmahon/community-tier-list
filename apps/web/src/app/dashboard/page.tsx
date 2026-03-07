@@ -1,8 +1,10 @@
-import { api } from "../../../convex/_generated/api";
+import * as apiModule from "../../../convex/_generated/api.js";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { auth } from "@/lib/auth";
 import { getServerConvexClient } from "@/lib/convex-server";
 import type { SessionSummary } from "@/lib/live-session";
+
+const { api } = apiModule;
 
 export default async function DashboardPage() {
   const session = await auth();

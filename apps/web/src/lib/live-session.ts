@@ -33,6 +33,12 @@ export type VoteDistribution = Record<Tier, number> & {
   avgScore: number | null;
 };
 
+export type PersonalVoteRecord = {
+  itemId: string;
+  tier: Tier;
+  updatedAt: number;
+};
+
 export function formatRelativeDate(timestamp: number): string {
   const diffMs = timestamp - Date.now();
   const absMs = Math.abs(diffMs);
@@ -71,4 +77,36 @@ export function emptyVoteDistribution(): VoteDistribution {
     totalVotes: 0,
     avgScore: null,
   };
+}
+
+export function placementsFromPersonalVotes(
+  items: SessionItem[],
+  votes: PersonalVoteRecord[],
+): TierPlacement[] {
+  const itemOrder = new Map(items.map((item) => [item._id, item.orderIndex]));
+  const orderedVotes = votes
+    .filter((vote) => itemOrder.has(vote.itemId))
+    .sort((left, right) => {
+      const leftOrder = itemOrder.get(left.itemId) ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = itemOrder.get(right.itemId) ?? Number.MAX_SAFE_INTEGER;
+      return leftOrder - rightOrder;
+    });
+
+  const positionsByTier: Record<Tier, number> = {
+    S: 0,
+    A: 0,
+    B: 0,
+    C: 0,
+    D: 0,
+  };
+
+  return orderedVotes.map((vote) => {
+    const position = positionsByTier[vote.tier];
+    positionsByTier[vote.tier] += 1;
+    return {
+      itemId: vote.itemId,
+      tier: vote.tier,
+      position,
+    };
+  });
 }

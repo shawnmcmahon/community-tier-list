@@ -1,8 +1,10 @@
 import NextAuth from "next-auth";
 import Twitch from "next-auth/providers/twitch";
 
-import { api } from "../../convex/_generated/api";
+import * as apiModule from "../../convex/_generated/api.js";
 import { getServerConvexClient } from "@/lib/convex-server";
+
+const { api } = apiModule;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { api } from "../../../../convex/_generated/api";
+import * as apiModule from "../../../../convex/_generated/api.js";
 import { auth } from "@/lib/auth";
 import { getServerConvexClient } from "@/lib/convex-server";
 import { signHostJwt } from "@/lib/host-jwt";
+
+const { api } = apiModule;
 
 type HostTokenRequestBody = {
   sessionSlug?: string;

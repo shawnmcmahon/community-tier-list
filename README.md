@@ -2,6 +2,8 @@
 
 A realtime tier list voting platform for Twitch streamers. Hosts create tier list sessions, stage items for their audience, and viewers vote in real time via S/A/B/C/D tiers. Built with Next.js, Convex, Socket.IO, and Auth.js.
 
+Project plan reference: `docs/plans/community-tier-lists-mvp.plan.md`
+
 ## Monorepo Structure
 
 - **apps/web** — Next.js 15 App Router frontend (Tailwind, shadcn/ui, Framer Motion)
