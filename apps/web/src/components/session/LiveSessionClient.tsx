@@ -2,15 +2,24 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { io, type Socket } from "socket.io-client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useHostSession } from "@/hooks/useHostSession";
+import { useKeyboardVote } from "@/hooks/useKeyboardVote";
+import { useMyBoard } from "@/hooks/useMyBoard";
+import { usePresence } from "@/hooks/usePresence";
+import { useSessionState } from "@/hooks/useSessionState";
+import { useSocket } from "@/hooks/useSocket";
+import { useVoting } from "@/hooks/useVoting";
+import {
+  type SessionItem,
+  type SessionStatus,
+  type TierPlacement,
+  type VoteDistribution,
+} from "@/lib/live-session";
 import { TIER_CONFIG, TIERS, type Tier } from "@/lib/mock-data";
-import { emptyVoteDistribution, type SessionItem, type SessionStatus, type TierPlacement, type VoteDistribution } from "@/lib/live-session";
 import { cn } from "@/lib/utils";
-
-const VOTER_KEY_STORAGE_KEY = "community-tier-list:voter-key";
 
 const neonTierColors: Record<Tier, { bar: string; glow: string }> = {
   S: { bar: "bg-amber-500", glow: "shadow-amber-500/30" },
@@ -18,19 +27,6 @@ const neonTierColors: Record<Tier, { bar: string; glow: string }> = {
   B: { bar: "bg-violet-500", glow: "shadow-violet-500/30" },
   C: { bar: "bg-cyan-500", glow: "shadow-cyan-500/30" },
   D: { bar: "bg-gray-500", glow: "shadow-gray-500/30" },
-};
-
-type SessionStatePayload = {
-  sessionSlug: string;
-  title: string;
-  status: SessionStatus;
-  voteWindowOpen: boolean;
-  currentStagedItemId: string | null;
-  updatedAt: number;
-};
-
-type VoteDistributionPayload = VoteDistribution & {
-  itemId: string | null;
 };
 
 type PlacementWithItem = {
@@ -52,6 +48,7 @@ type LiveSessionClientProps = {
   initialStreamerPlacements: TierPlacement[];
   initialCommunityPlacements: TierPlacement[];
   initialDistribution: VoteDistribution;
+  canHost: boolean;
   viewerTwitchUserId?: string;
   viewerDisplayName?: string;
 };
@@ -94,140 +91,114 @@ export function LiveSessionClient({
   initialStreamerPlacements,
   initialCommunityPlacements,
   initialDistribution,
+  canHost,
   viewerTwitchUserId,
   viewerDisplayName,
 }: LiveSessionClientProps) {
-  const socketRef = useRef<Socket | null>(null);
-  const [title, setTitle] = useState(initialTitle);
-  const [status, setStatus] = useState<SessionStatus>(initialStatus);
-  const [voteWindowOpen, setVoteWindowOpen] = useState(initialVoteWindowOpen);
-  const [currentStagedItemId, setCurrentStagedItemId] = useState<string | null>(initialCurrentStagedItemId);
-  const [viewerCount] = useState(initialViewerCount);
-  const [communityPlacements, setCommunityPlacements] = useState(initialCommunityPlacements);
-  const [distribution, setDistribution] = useState<VoteDistribution>(initialDistribution);
-  const [voteMessage, setVoteMessage] = useState<string | null>(null);
-  const [isSubmittingVote, setIsSubmittingVote] = useState(false);
-  const currentStagedItemIdRef = useRef<string | null>(initialCurrentStagedItemId);
+  const { socket, connectionError, connectionState } = useSocket();
+  const {
+    title,
+    status,
+    voteWindowOpen,
+    currentStagedItemId,
+    items,
+    streamerPlacements,
+    communityPlacements,
+    sessionError,
+    setItems,
+  } = useSessionState({
+    socket,
+    sessionSlug,
+    viewerTwitchUserId,
+    viewerDisplayName,
+    initialTitle,
+    initialStatus,
+    initialVoteWindowOpen,
+    initialCurrentStagedItemId,
+    initialItems,
+    initialStreamerPlacements,
+    initialCommunityPlacements,
+  });
+  const { viewerCount, recentJoins } = usePresence({
+    socket,
+    initialViewerCount,
+  });
+  const { placements: myPlacements, recordVote } = useMyBoard(sessionSlug, items);
+  const { distribution, voteMessage, isSubmittingVote, submitVote } = useVoting({
+    socket,
+    stagedItemId: currentStagedItemId,
+    initialDistribution,
+    viewerTwitchUserId,
+    viewerDisplayName,
+    onVoteSuccess: recordVote,
+  });
+  const {
+    hostReady,
+    hostError,
+    isWorking,
+    setLive,
+    complete,
+    stageItem,
+    unstageItem,
+    openVoting,
+    closeVoting,
+    finalizeItem,
+    addItems,
+  } = useHostSession({
+    socket,
+    sessionSlug,
+    canHost,
+  });
 
+  const [newItemsText, setNewItemsText] = useState("");
+  const interactionError = connectionError ?? sessionError;
   const stagedItem = useMemo(
-    () => initialItems.find((item) => item._id === currentStagedItemId) ?? null,
-    [currentStagedItemId, initialItems],
+    () => items.find((item) => item._id === currentStagedItemId) ?? null,
+    [currentStagedItemId, items],
   );
   const poolItems = useMemo(
     () =>
-      initialItems
+      items
         .filter((item) => item.status === "pool")
-        .filter((item) => !initialStreamerPlacements.some((placement) => placement.itemId === item._id)),
-    [initialItems, initialStreamerPlacements],
+        .filter((item) => !streamerPlacements.some((placement) => placement.itemId === item._id)),
+    [items, streamerPlacements],
   );
   const streamerBoardItems = useMemo(
-    () => placementItems(initialStreamerPlacements, initialItems),
-    [initialItems, initialStreamerPlacements],
+    () => placementItems(streamerPlacements, items),
+    [items, streamerPlacements],
+  );
+  const myBoardItems = useMemo(
+    () => placementItems(myPlacements, items),
+    [myPlacements, items],
   );
   const communityBoardItems = useMemo(
-    () => placementItems(communityPlacements, initialItems),
-    [communityPlacements, initialItems],
+    () => placementItems(communityPlacements, items),
+    [communityPlacements, items],
   );
 
-  useEffect(() => {
-    currentStagedItemIdRef.current = currentStagedItemId;
-  }, [currentStagedItemId]);
+  useKeyboardVote({
+    enabled: Boolean(stagedItem) && voteWindowOpen && status === "live" && !isSubmittingVote,
+    onVote: submitVote,
+  });
 
-  useEffect(() => {
-    const realtimeUrl = process.env.NEXT_PUBLIC_REALTIME_URL;
-    if (!realtimeUrl) {
-      setVoteMessage("Realtime URL is not configured.");
+  async function handleAddItems() {
+    const labels = newItemsText
+      .split("\n")
+      .map((label) => label.trim())
+      .filter(Boolean);
+
+    if (labels.length === 0) {
       return;
     }
 
-    const socket = io(realtimeUrl, {
-      transports: ["websocket"],
-    });
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      const storedVoterKey = window.localStorage.getItem(VOTER_KEY_STORAGE_KEY) ?? undefined;
-      socket.emit(
-        "session:join",
-        {
-          sessionSlug,
-          twitchUserId: viewerTwitchUserId,
-          voterKey: storedVoterKey,
-        },
-        (response: { ok: boolean; data?: { voterKey: string }; error?: string }) => {
-          if (!response.ok) {
-            setVoteMessage(response.error ?? "Unable to join session");
-            return;
-          }
-
-          if (response.data?.voterKey) {
-            window.localStorage.setItem(VOTER_KEY_STORAGE_KEY, response.data.voterKey);
-          }
-        },
-      );
-    });
-
-    socket.on("session:state", (payload: SessionStatePayload) => {
-      setTitle(payload.title);
-      setStatus(payload.status);
-      setVoteWindowOpen(payload.voteWindowOpen);
-      setCurrentStagedItemId(payload.currentStagedItemId);
-      if (!payload.currentStagedItemId) {
-        setDistribution(emptyVoteDistribution());
+    try {
+      const nextItems = await addItems(labels);
+      if (!nextItems) {
+        return;
       }
-    });
-
-    socket.on("votes:distribution", (payload: VoteDistributionPayload) => {
-      if (!payload.itemId || payload.itemId === currentStagedItemIdRef.current) {
-        setDistribution({
-          S: payload.S,
-          A: payload.A,
-          B: payload.B,
-          C: payload.C,
-          D: payload.D,
-          totalVotes: payload.totalVotes,
-          avgScore: payload.avgScore,
-        });
-      }
-    });
-
-    socket.on("community:placements", (payload: TierPlacement[]) => {
-      setCommunityPlacements(payload);
-    });
-
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, [sessionSlug, viewerTwitchUserId]);
-
-  async function handleVote(tier: Tier) {
-    if (!socketRef.current || !stagedItem) {
-      return;
-    }
-
-    setIsSubmittingVote(true);
-    setVoteMessage(null);
-
-    const storedVoterKey = window.localStorage.getItem(VOTER_KEY_STORAGE_KEY) ?? undefined;
-    socketRef.current.emit(
-      "viewer:vote",
-      {
-        itemId: stagedItem._id,
-        tier,
-        voterKey: storedVoterKey,
-        twitchUserId: viewerTwitchUserId,
-      },
-      (response: { ok: boolean; data?: { totalVotes: number }; error?: string }) => {
-        setIsSubmittingVote(false);
-        if (!response.ok) {
-          setVoteMessage(response.error ?? "Vote failed");
-          return;
-        }
-
-        setVoteMessage(`Vote submitted${viewerDisplayName ? ` for ${viewerDisplayName}` : ""}.`);
-      },
-    );
+      setItems(nextItems);
+      setNewItemsText("");
+    } catch {}
   }
 
   return (
@@ -248,7 +219,13 @@ export function LiveSessionClient({
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 <span>{hostDisplayName ? `by ${hostDisplayName}` : "community tier list"}</span>
                 <span>&middot;</span>
-                <span>{initialItems.length} items</span>
+                <span>{items.length} items</span>
+                {recentJoins[0] ? (
+                  <>
+                    <span>&middot;</span>
+                    <span>latest: {recentJoins[0]}</span>
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
@@ -258,7 +235,9 @@ export function LiveSessionClient({
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-fuchsia-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-fuchsia-500" />
               </span>
-              <span className="font-bold tabular-nums text-fuchsia-400">{viewerCount.toLocaleString()}</span>
+              <span className="font-bold tabular-nums text-fuchsia-400">
+                {viewerCount.toLocaleString()}
+              </span>
               <span className="hidden text-gray-600 sm:inline">joined</span>
             </div>
             <span
@@ -271,7 +250,6 @@ export function LiveSessionClient({
                     : "border-gray-400/30 bg-gray-400/10 text-gray-400",
               )}
             >
-              {status === "live" ? "● " : null}
               {status}
             </span>
           </div>
@@ -281,6 +259,40 @@ export function LiveSessionClient({
       <main className="relative mx-auto max-w-[1800px] px-4 py-6 lg:px-6">
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
           <div className="space-y-6">
+            {canHost ? (
+              <HostControlPanel
+                canHost={canHost}
+                hostReady={hostReady}
+                hostError={hostError}
+                isWorking={isWorking}
+                newItemsText={newItemsText}
+                setNewItemsText={setNewItemsText}
+                status={status}
+                stagedItem={stagedItem}
+                poolItems={poolItems}
+                voteWindowOpen={voteWindowOpen}
+                onAddItems={handleAddItems}
+                onSetLive={() => void setLive()}
+                onComplete={() => void complete()}
+                onStageItem={(itemId) => void stageItem(itemId)}
+                onUnstage={() => void unstageItem()}
+                onOpenVoting={() => void openVoting()}
+                onCloseVoting={() => void closeVoting()}
+                onFinalize={(tier) => void finalizeItem(tier)}
+              />
+            ) : null}
+
+            {connectionState !== "connected" || interactionError ? (
+              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                {interactionError ??
+                  (connectionState === "reconnecting"
+                    ? "Reconnecting to the live session..."
+                    : connectionState === "disconnected"
+                      ? "Live connection is offline."
+                      : "Connecting to the live session...")}
+              </div>
+            ) : null}
+
             <motion.div
               className="rounded-2xl border border-fuchsia-500/20 bg-gray-900/80 p-6 backdrop-blur"
               initial={{ opacity: 0, y: 20 }}
@@ -324,7 +336,9 @@ export function LiveSessionClient({
                     const colors = neonTierColors[tier];
                     return (
                       <div key={tier} className="flex items-center gap-3">
-                        <span className={`flex h-8 w-8 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-sm font-black ${TIER_CONFIG[tier].color}`}>
+                        <span
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-sm font-black ${TIER_CONFIG[tier].color}`}
+                        >
                           {tier}
                         </span>
                         <div className="flex-1">
@@ -354,11 +368,24 @@ export function LiveSessionClient({
                 {TIERS.map((tier) => (
                   <Button
                     key={tier}
-                    variant={`tier_${tier.toLowerCase()}` as "tier_s" | "tier_a" | "tier_b" | "tier_c" | "tier_d"}
+                    variant={
+                      `tier_${tier.toLowerCase()}` as
+                        | "tier_s"
+                        | "tier_a"
+                        | "tier_b"
+                        | "tier_c"
+                        | "tier_d"
+                    }
                     size="lg"
                     className="min-w-[64px] flex-1 rounded-xl font-black"
-                    disabled={!stagedItem || !voteWindowOpen || status !== "live" || isSubmittingVote}
-                    onClick={() => handleVote(tier)}
+                    disabled={
+                      !stagedItem ||
+                      !voteWindowOpen ||
+                      status !== "live" ||
+                      isSubmittingVote ||
+                      Boolean(interactionError)
+                    }
+                    onClick={() => submitVote(tier)}
                   >
                     {tier}
                     <kbd className="ml-1.5 rounded border border-white/20 px-1 text-[10px] opacity-60">
@@ -369,17 +396,37 @@ export function LiveSessionClient({
               </div>
 
               <div className="mt-4 text-sm text-gray-500">
-                {!voteWindowOpen || status !== "live"
-                  ? "Voting is closed right now."
-                  : voteMessage ?? "Vote with the buttons above."}
+                {interactionError ??
+                  (!voteWindowOpen || status !== "live"
+                    ? "Voting is closed right now."
+                    : voteMessage ?? "Vote with the buttons above or use 1-5 / S-A-B-C-D.")}
               </div>
             </motion.div>
+
+            {!canHost ? (
+              <motion.div
+                className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-base font-black uppercase tracking-wider text-white">
+                    My Board
+                  </h3>
+                  <span className="text-xs font-bold text-gray-500">
+                    {myBoardItems.length} voted
+                  </span>
+                </div>
+                <TierBoard items={myBoardItems} />
+              </motion.div>
+            ) : null}
 
             <motion.div
               className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
+              transition={{ duration: 0.4, delay: canHost ? 0.1 : 0.2 }}
             >
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-base font-black uppercase tracking-wider text-white">
@@ -396,7 +443,7 @@ export function LiveSessionClient({
               className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
+              transition={{ duration: 0.4, delay: canHost ? 0.2 : 0.3 }}
             >
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-base font-black uppercase tracking-wider text-white">
@@ -429,7 +476,7 @@ export function LiveSessionClient({
                 {poolItems.map((item, i) => (
                   <motion.div
                     key={item._id}
-                    className="group flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-gray-800 bg-gray-800/40 p-3 transition-colors hover:border-fuchsia-500/30 hover:bg-fuchsia-900/20"
+                    className="group flex flex-col items-center gap-1.5 rounded-xl border border-gray-800 bg-gray-800/40 p-3"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3, delay: 0.3 + i * 0.05 }}
@@ -448,6 +495,157 @@ export function LiveSessionClient({
         </div>
       </main>
     </div>
+  );
+}
+
+function HostControlPanel({
+  canHost,
+  hostReady,
+  hostError,
+  isWorking,
+  newItemsText,
+  setNewItemsText,
+  status,
+  stagedItem,
+  poolItems,
+  voteWindowOpen,
+  onAddItems,
+  onSetLive,
+  onComplete,
+  onStageItem,
+  onUnstage,
+  onOpenVoting,
+  onCloseVoting,
+  onFinalize,
+}: {
+  canHost: boolean;
+  hostReady: boolean;
+  hostError: string | null;
+  isWorking: boolean;
+  newItemsText: string;
+  setNewItemsText: (value: string) => void;
+  status: SessionStatus;
+  stagedItem: SessionItem | null;
+  poolItems: SessionItem[];
+  voteWindowOpen: boolean;
+  onAddItems: () => void;
+  onSetLive: () => void;
+  onComplete: () => void;
+  onStageItem: (itemId: string) => void;
+  onUnstage: () => void;
+  onOpenVoting: () => void;
+  onCloseVoting: () => void;
+  onFinalize: (tier: Tier) => void;
+}) {
+  if (!canHost) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-2xl border border-cyan-500/20 bg-cyan-950/20 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-widest text-cyan-300">
+            Host Controls
+          </h2>
+          <p className="mt-1 text-sm text-gray-400">
+            {hostError ??
+              (hostReady ? "Realtime host controls connected." : "Connecting host controls...")}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={!hostReady || isWorking || status !== "draft"} onClick={onSetLive}>
+            Go Live
+          </Button>
+          <Button disabled={!hostReady || isWorking || status === "completed"} onClick={onComplete} variant="secondary">
+            Complete
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+        <div className="space-y-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+            Add Items
+          </h3>
+          <textarea
+            value={newItemsText}
+            onChange={(event) => setNewItemsText(event.target.value)}
+            placeholder={"One item label per line"}
+            className="min-h-32 w-full rounded-xl border border-gray-800 bg-black/40 px-3 py-2 text-sm text-white outline-none ring-0 placeholder:text-gray-600"
+          />
+          <Button disabled={!hostReady || isWorking} onClick={onAddItems}>
+            Add To Pool
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+              Stage Item
+            </h3>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {poolItems.length === 0 ? (
+                <span className="text-sm text-gray-500">No pool items yet.</span>
+              ) : null}
+              {poolItems.slice(0, 8).map((item) => (
+                <Button
+                  key={item._id}
+                  disabled={!hostReady || isWorking || Boolean(stagedItem)}
+                  onClick={() => onStageItem(item._id)}
+                  variant="secondary"
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+              Active Item
+            </h3>
+            <p className="mt-2 text-sm text-white">
+              {stagedItem ? stagedItem.label : "No item staged"}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                disabled={!hostReady || isWorking || !stagedItem || voteWindowOpen}
+                onClick={onOpenVoting}
+              >
+                Open Voting
+              </Button>
+              <Button
+                disabled={!hostReady || isWorking || !stagedItem || !voteWindowOpen}
+                onClick={onCloseVoting}
+                variant="secondary"
+              >
+                Close Voting
+              </Button>
+              <Button
+                disabled={!hostReady || isWorking || !stagedItem}
+                onClick={onUnstage}
+                variant="secondary"
+              >
+                Unstage
+              </Button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {TIERS.map((tier) => (
+                <Button
+                  key={tier}
+                  disabled={!hostReady || isWorking || !stagedItem}
+                  onClick={() => onFinalize(tier)}
+                  variant="secondary"
+                >
+                  Finalize {tier}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 
-import { api } from "../../../../convex/_generated/api";
+import * as apiModule from "../../../../convex/_generated/api.js";
 import { LiveSessionClient } from "@/components/session/LiveSessionClient";
 import { auth } from "@/lib/auth";
 import { getServerConvexClient } from "@/lib/convex-server";
 import { emptyVoteDistribution, type SessionItem, type TierPlacement, type VoteDistribution } from "@/lib/live-session";
+
+const { api } = apiModule;
 
 type SessionPageProps = {
   params: Promise<{
@@ -38,7 +40,7 @@ export default async function SessionPage({ params }: SessionPageProps) {
       }) as Promise<TierPlacement[]>,
       convex.query((api as any).users.getById, {
         userId: sessionDoc.hostUserId,
-      }) as Promise<{ twitchDisplayName?: string } | null>,
+      }) as Promise<{ twitchDisplayName?: string; twitchUserId?: string } | null>,
       sessionDoc.currentStagedItemId
         ? (convex.query((api as any).votes.distributionByItem, {
             itemId: sessionDoc.currentStagedItemId,
@@ -48,6 +50,10 @@ export default async function SessionPage({ params }: SessionPageProps) {
         sessionId: sessionDoc._id,
       }) as Promise<number>,
     ]);
+
+  const canHost =
+    Boolean(viewerSession?.user?.twitchUserId) &&
+    viewerSession?.user?.twitchUserId === hostUser?.twitchUserId;
 
   return (
     <LiveSessionClient
@@ -62,6 +68,7 @@ export default async function SessionPage({ params }: SessionPageProps) {
       initialStreamerPlacements={streamerPlacements}
       initialCommunityPlacements={communityPlacements}
       initialDistribution={distribution}
+      canHost={canHost}
       viewerTwitchUserId={viewerSession?.user?.twitchUserId}
       viewerDisplayName={viewerSession?.user?.twitchDisplayName}
     />

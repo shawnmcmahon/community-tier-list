@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { api } from "../../../../convex/_generated/api";
+import * as apiModule from "../../../../convex/_generated/api.js";
 import { auth } from "@/lib/auth";
 import { getServerConvexClient } from "@/lib/convex-server";
+
+const { api } = apiModule;
 
 type CreateSessionRequestBody = {
   title?: string;
