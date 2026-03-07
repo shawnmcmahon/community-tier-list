@@ -40,3 +40,15 @@ export const historyByTwitchUser = query({
       .collect();
   },
 });
+
+export const countBySession = query({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    const participation = await ctx.db
+      .query("participation")
+      .withIndex("by_sessionId_twitchUserId", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+
+    return participation.length;
+  },
+});

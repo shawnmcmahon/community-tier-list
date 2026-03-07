@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
@@ -32,17 +33,16 @@ export default function LoginPage() {
         </div>
 
         <div className="rounded-2xl border border-fuchsia-500/20 bg-gray-900/80 backdrop-blur-xl p-8 shadow-2xl shadow-fuchsia-500/5">
-          <Link href="/dashboard">
-            <Button
-              size="xl"
-              className="w-full bg-[#9146FF] hover:bg-[#7C3AED] text-white shadow-lg shadow-purple-500/30 rounded-xl font-bold uppercase tracking-wider"
-            >
-              <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
-              </svg>
-              Continue with Twitch
-            </Button>
-          </Link>
+          <Button
+            size="xl"
+            className="w-full rounded-xl bg-[#9146FF] font-bold uppercase tracking-wider text-white shadow-lg shadow-purple-500/30 hover:bg-[#7C3AED]"
+            onClick={() => signIn("twitch", { redirectTo: "/dashboard" })}
+          >
+            <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
+            </svg>
+            Continue with Twitch
+          </Button>
 
           <div className="mt-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent" />

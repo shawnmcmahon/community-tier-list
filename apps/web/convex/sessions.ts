@@ -46,7 +46,7 @@ export const create = mutation({
     }
 
     const now = Date.now();
-    return ctx.db.insert("sessions", {
+    const sessionId = await ctx.db.insert("sessions", {
       hostUserId: host._id,
       slug: finalSlug,
       title: args.title,
@@ -56,6 +56,11 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    return {
+      sessionId,
+      slug: finalSlug,
+    };
   },
 });
 
@@ -96,6 +101,55 @@ export const getBySlug = query({
       .query("sessions")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
+  },
+});
+
+export const listDashboardByHost = query({
+  args: {
+    hostTwitchUserId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const host = await ctx.db
+      .query("users")
+      .withIndex("by_twitchUserId", (q) => q.eq("twitchUserId", args.hostTwitchUserId))
+      .first();
+
+    if (!host) {
+      return [];
+    }
+
+    const sessions = await ctx.db
+      .query("sessions")
+      .withIndex("by_hostUserId_status", (q) => q.eq("hostUserId", host._id))
+      .collect();
+
+    const enriched = await Promise.all(
+      sessions.map(async (session) => {
+        const [items, votes, participation] = await Promise.all([
+          ctx.db
+            .query("items")
+            .withIndex("by_sessionId", (q) => q.eq("sessionId", session._id))
+            .collect(),
+          ctx.db
+            .query("votes")
+            .filter((q) => q.eq(q.field("sessionId"), session._id))
+            .collect(),
+          ctx.db
+            .query("participation")
+            .withIndex("by_sessionId_twitchUserId", (q) => q.eq("sessionId", session._id))
+            .collect(),
+        ]);
+
+        return {
+          ...session,
+          itemCount: items.length,
+          viewerCount: participation.length,
+          voteCount: votes.length,
+        };
+      }),
+    );
+
+    return enriched.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
 
