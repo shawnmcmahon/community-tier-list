@@ -29,6 +29,9 @@ export async function POST(request: Request) {
     }
 
     const sessionSlug = body.sessionSlug?.trim();
+    if (body.labels !== undefined && !Array.isArray(body.labels)) {
+      return NextResponse.json({ error: "labels must be an array" }, { status: 400 });
+    }
     const labels = (body.labels ?? []).map((label) => label.trim()).filter(Boolean);
 
     if (!sessionSlug) {

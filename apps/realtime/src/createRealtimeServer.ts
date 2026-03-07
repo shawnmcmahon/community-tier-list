@@ -161,6 +161,8 @@ const RATE_LIMIT_POLICIES: Record<string, RateLimitPolicy> = {
   "vote:cast": { key: "vote", limit: 15, windowMs: 8_000 },
 };
 
+const MAX_VIEWER_DISPLAY_NAME_LENGTH = 64;
+
 function roomForSession(sessionSlug: string): string {
   return `session:${sessionSlug}`;
 }
@@ -245,6 +247,16 @@ function resolvePresenceLabel(socket: Socket<any, any, any, SocketData>): string
   }
 
   return "Anonymous viewer";
+}
+
+function normalizeDisplayName(displayName?: string): string | undefined {
+  const trimmed = displayName?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const normalizedWhitespace = trimmed.replace(/\s+/g, " ");
+  return normalizedWhitespace.slice(0, MAX_VIEWER_DISPLAY_NAME_LENGTH);
 }
 
 function assertHostAuthorized(
@@ -499,7 +511,7 @@ export function createRealtimeServer({
           socket.data.sessionSlug = payload.sessionSlug;
           socket.data.viewerVoterKey = voterKey;
           socket.data.twitchUserId = payload.twitchUserId;
-          socket.data.viewerDisplayName = payload.displayName;
+          socket.data.viewerDisplayName = normalizeDisplayName(payload.displayName);
           syncPresence(socket, payload.sessionSlug);
 
           if (payload.twitchUserId) {
@@ -808,6 +820,7 @@ export function createRealtimeServer({
     );
 
     socket.on("disconnect", () => {
+      rateLimiter.clearSocket(socket.id);
       const presence = presenceTracker.leave(socket.id);
       if (presence) {
         emitPresenceUpdate(presence.sessionSlug);

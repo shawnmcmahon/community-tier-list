@@ -48,3 +48,25 @@ test("FixedWindowRateLimiter blocks requests after the limit and resets after th
   });
   assert.deepEqual(limiter.check("socket-1", policy, 2_600), { ok: true });
 });
+
+test("FixedWindowRateLimiter clears all buckets for a disconnected socket", () => {
+  const limiter = new FixedWindowRateLimiter();
+  const votePolicy = {
+    key: "vote",
+    limit: 1,
+    windowMs: 1_000,
+  };
+  const statePolicy = {
+    key: "state",
+    limit: 1,
+    windowMs: 1_000,
+  };
+
+  assert.deepEqual(limiter.check("socket-1", votePolicy, 1_000), { ok: true });
+  assert.deepEqual(limiter.check("socket-1", statePolicy, 1_000), { ok: true });
+
+  limiter.clearSocket("socket-1");
+
+  assert.deepEqual(limiter.check("socket-1", votePolicy, 1_100), { ok: true });
+  assert.deepEqual(limiter.check("socket-1", statePolicy, 1_100), { ok: true });
+});

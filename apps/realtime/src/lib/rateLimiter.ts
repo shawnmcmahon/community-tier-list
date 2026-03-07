@@ -38,4 +38,13 @@ export class FixedWindowRateLimiter {
     existing.count += 1;
     return { ok: true };
   }
+
+  clearSocket(socketId: string): void {
+    const prefix = `${socketId}:`;
+    for (const key of this.buckets.keys()) {
+      if (key.startsWith(prefix)) {
+        this.buckets.delete(key);
+      }
+    }
+  }
 }
