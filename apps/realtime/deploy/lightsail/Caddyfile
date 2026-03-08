@@ -1,0 +1,4 @@
+{$REALTIME_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy realtime:3001
+}

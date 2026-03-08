@@ -17,6 +17,15 @@ type AddItemsResponse =
   | { items: SessionItem[] }
   | { error: string };
 
+type TierMakerImportResponse =
+  | {
+      items: SessionItem[];
+      importedCount: number;
+      importTitle: string | null;
+      sourceUrl: string;
+    }
+  | { error: string };
+
 export function useHostSession({ socket, sessionSlug, canHost }: UseHostSessionOptions) {
   const [hostReady, setHostReady] = useState(false);
   const [hostError, setHostError] = useState<string | null>(null);
@@ -166,6 +175,27 @@ export function useHostSession({ socket, sessionSlug, canHost }: UseHostSessionO
         }
 
         return payload.items;
+      }),
+    importTierMaker: async (tiermakerUrl: string) =>
+      runHostAction(async () => {
+        const response = await fetch("/api/tiermaker-import", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ sessionSlug, tiermakerUrl }),
+        });
+
+        const payload = (await response.json().catch(() => null)) as TierMakerImportResponse | null;
+        if (!response.ok || !payload || "error" in payload) {
+          throw new Error(
+            payload && "error" in payload
+              ? payload.error
+              : "Unable to import from TierMaker.",
+          );
+        }
+
+        return payload;
       }),
   };
 }

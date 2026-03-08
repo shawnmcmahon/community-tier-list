@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "node --test --experimental-strip-types src/lib/sessionState.test.ts src/lib/presenceTracker.test.ts src/lib/rateLimiter.test.ts src/createRealtimeServer.test.ts"

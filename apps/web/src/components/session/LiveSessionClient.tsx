@@ -144,6 +144,7 @@ export function LiveSessionClient({
     closeVoting,
     finalizeItem,
     addItems,
+    importTierMaker,
   } = useHostSession({
     socket,
     sessionSlug,
@@ -151,6 +152,8 @@ export function LiveSessionClient({
   });
 
   const [newItemsText, setNewItemsText] = useState("");
+  const [tierMakerUrl, setTierMakerUrl] = useState("");
+  const [hostNotice, setHostNotice] = useState<string | null>(null);
   const interactionError = connectionError ?? sessionError;
   const stagedItem = useMemo(
     () => items.find((item) => item._id === currentStagedItemId) ?? null,
@@ -192,12 +195,37 @@ export function LiveSessionClient({
     }
 
     try {
+      setHostNotice(null);
       const nextItems = await addItems(labels);
       if (!nextItems) {
         return;
       }
       setItems(nextItems);
       setNewItemsText("");
+      setHostNotice(`Added ${labels.length} item${labels.length === 1 ? "" : "s"} to the pool.`);
+    } catch {}
+  }
+
+  async function handleTierMakerImport() {
+    const nextUrl = tierMakerUrl.trim();
+    if (!nextUrl) {
+      return;
+    }
+
+    try {
+      setHostNotice(null);
+      const payload = await importTierMaker(nextUrl);
+      if (!payload) {
+        return;
+      }
+
+      setItems(payload.items);
+      setTierMakerUrl("");
+      setHostNotice(
+        payload.importTitle
+          ? `Imported ${payload.importedCount} items from ${payload.importTitle}.`
+          : `Imported ${payload.importedCount} TierMaker items.`,
+      );
     } catch {}
   }
 
@@ -265,13 +293,17 @@ export function LiveSessionClient({
                 hostReady={hostReady}
                 hostError={hostError}
                 isWorking={isWorking}
+                hostNotice={hostNotice}
                 newItemsText={newItemsText}
                 setNewItemsText={setNewItemsText}
+                tierMakerUrl={tierMakerUrl}
+                setTierMakerUrl={setTierMakerUrl}
                 status={status}
                 stagedItem={stagedItem}
                 poolItems={poolItems}
                 voteWindowOpen={voteWindowOpen}
                 onAddItems={handleAddItems}
+                onImportTierMaker={handleTierMakerImport}
                 onSetLive={() => void setLive()}
                 onComplete={() => void complete()}
                 onStageItem={(itemId) => void stageItem(itemId)}
@@ -283,7 +315,11 @@ export function LiveSessionClient({
             ) : null}
 
             {connectionState !== "connected" || interactionError ? (
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              <div
+                role="status"
+                aria-live="polite"
+                className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+              >
                 {interactionError ??
                   (connectionState === "reconnecting"
                     ? "Reconnecting to the live session..."
@@ -503,13 +539,17 @@ function HostControlPanel({
   hostReady,
   hostError,
   isWorking,
+  hostNotice,
   newItemsText,
   setNewItemsText,
+  tierMakerUrl,
+  setTierMakerUrl,
   status,
   stagedItem,
   poolItems,
   voteWindowOpen,
   onAddItems,
+  onImportTierMaker,
   onSetLive,
   onComplete,
   onStageItem,
@@ -522,13 +562,17 @@ function HostControlPanel({
   hostReady: boolean;
   hostError: string | null;
   isWorking: boolean;
+  hostNotice: string | null;
   newItemsText: string;
   setNewItemsText: (value: string) => void;
+  tierMakerUrl: string;
+  setTierMakerUrl: (value: string) => void;
   status: SessionStatus;
   stagedItem: SessionItem | null;
   poolItems: SessionItem[];
   voteWindowOpen: boolean;
   onAddItems: () => void;
+  onImportTierMaker: () => void;
   onSetLive: () => void;
   onComplete: () => void;
   onStageItem: (itemId: string) => void;
@@ -563,6 +607,16 @@ function HostControlPanel({
         </div>
       </div>
 
+      {hostNotice ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+        >
+          {hostNotice}
+        </div>
+      ) : null}
+
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_1fr]">
         <div className="space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
@@ -574,9 +628,35 @@ function HostControlPanel({
             placeholder={"One item label per line"}
             className="min-h-32 w-full rounded-xl border border-gray-800 bg-black/40 px-3 py-2 text-sm text-white outline-none ring-0 placeholder:text-gray-600"
           />
-          <Button disabled={!hostReady || isWorking} onClick={onAddItems}>
+          <Button disabled={isWorking} onClick={onAddItems}>
             Add To Pool
           </Button>
+          <div className="rounded-xl border border-gray-800 bg-black/30 p-3">
+            <label
+              htmlFor="tiermaker-url"
+              className="text-xs font-bold uppercase tracking-wider text-gray-400"
+            >
+              Import From TierMaker
+            </label>
+            <input
+              id="tiermaker-url"
+              value={tierMakerUrl}
+              onChange={(event) => setTierMakerUrl(event.target.value)}
+              placeholder="https://tiermaker.com/create/..."
+              className="mt-2 h-11 w-full rounded-xl border border-gray-800 bg-black/40 px-3 text-sm text-white outline-none placeholder:text-gray-600"
+            />
+            <p className="mt-2 text-xs text-gray-500">
+              Use a direct template URL. If TierMaker blocks automation, fall back to manual labels above.
+            </p>
+            <Button
+              className="mt-3"
+              disabled={isWorking || tierMakerUrl.trim().length === 0}
+              onClick={onImportTierMaker}
+              variant="secondary"
+            >
+              Import TierMaker
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-4">
