@@ -1,0 +1,11 @@
+node_modules
+.git
+.github
+.turbo
+.next
+coverage
+dist
+realtime-server.log
+apps/web/.next
+apps/web/node_modules
+apps/realtime/node_modules

@@ -1,8 +1,8 @@
 ---
 name: Community Tier Lists MVP
-overview: Full engineering plan for a pnpm monorepo "Community Tier Lists" app - a realtime tier list voting platform for Twitch streamers, built with Next.js, Convex, Socket.IO, and Auth.js, deployed to Vercel + Fly.io.
+overview: Full engineering plan for a pnpm monorepo "Community Tier Lists" app - a realtime tier list voting platform for Twitch streamers, built with Next.js, Convex, Socket.IO, and Auth.js, deployed to Vercel + AWS Lightsail.
 source: C:\Users\shawn\.cursor\plans\community_tier_lists_mvp_56a63a2e.plan.md
-current_focus: Phase 4 - Realtime Server + WebSockets
+current_focus: Phase 6 - Deployment + Polish (AWS Lightsail + Vercel)
 todos:
   - id: phase1
     content: "Phase 1 - Foundation + Premium UI: monorepo scaffold, five design concepts, homepage routes"
@@ -20,7 +20,7 @@ todos:
     content: "Phase 5 - TierMaker Import: API route, UI form, failure handling"
     status: pending
   - id: phase6
-    content: "Phase 6 - Deployment + Polish: Fly.io + Vercel deploy, smoke test, accessibility, README, demo script"
+    content: "Phase 6 - Deployment + Polish: Lightsail + Vercel deploy, smoke test, accessibility, README, demo script"
     status: pending
 isProject: false
 ---
@@ -36,7 +36,7 @@ This file preserves the external planning doc in-repo for reference. It is a nor
 - Realtime: Socket.IO for joining sessions, live voting, host controls, staging, board updates, and presence
 - Auth: Auth.js with Twitch plus short-lived host JWTs
 - Import: TierMaker import is optional and server-side only
-- Deploy: Vercel for web, Fly.io for realtime, Convex for data/functions
+- Deploy: Vercel for web, AWS Lightsail for realtime, Convex for data/functions
 
 ## Fast MVP Execution Sequence
 
@@ -100,7 +100,7 @@ This file preserves the external planning doc in-repo for reference. It is a nor
 ### Phase 6 - Deployment + Polish
 
 - `6.1` Write the `apps/realtime` Dockerfile
-- `6.2` Deploy realtime server to Fly.io
+- `6.2` Deploy realtime server to AWS Lightsail
 - `6.3` Deploy the web app to Vercel
 - `6.4` Run an end-to-end smoke test
 - `6.5` Verify CORS, JWT auth, and rate limiting in production

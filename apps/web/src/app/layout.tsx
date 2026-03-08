@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Community Tier Lists — Realtime Tier Voting for Streamers",
+  title: "Community Tier Lists - Realtime Tier Voting for Streamers",
   description:
     "Create interactive tier list sessions for your audience. Stage items, let viewers vote in real time, and build community rankings together.",
 };
