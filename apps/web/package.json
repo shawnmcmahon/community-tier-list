@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "test": "node --test --experimental-strip-types convex/lib/scoring.test.ts convex/lib/placement.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1",

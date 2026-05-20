@@ -19,13 +19,14 @@ const api = anyApi;
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const envFiles = [
-  resolve(currentDir, "../.env.local"),
   resolve(currentDir, "../../../.env.local"),
+  resolve(currentDir, "../.env.local"),
+  resolve(currentDir, "../../web/.env.local"),
 ];
 
 for (const envFile of envFiles) {
   if (existsSync(envFile)) {
-    dotenv.config({ path: envFile, override: false });
+    dotenv.config({ path: envFile, override: true });
   }
 }
 
