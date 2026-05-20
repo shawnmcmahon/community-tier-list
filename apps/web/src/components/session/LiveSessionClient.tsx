@@ -422,6 +422,7 @@ export function LiveSessionClient({
                       Boolean(interactionError)
                     }
                     onClick={() => submitVote(tier)}
+                    aria-label={`Vote ${tier} tier`}
                   >
                     {tier}
                     <kbd className="ml-1.5 rounded border border-white/20 px-1 text-[10px] opacity-60">
@@ -717,6 +718,7 @@ function HostControlPanel({
                   disabled={!hostReady || isWorking || !stagedItem}
                   onClick={() => onFinalize(tier)}
                   variant="secondary"
+                  aria-label={`Finalize staged item as ${tier} tier`}
                 >
                   Finalize {tier}
                 </Button>

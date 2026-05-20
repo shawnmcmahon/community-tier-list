@@ -4,7 +4,7 @@ This runbook covers the TierMaker import work from phase 5 and the deployment/po
 
 ## Prerequisites
 
-- Copy `.env.example` to `.env.local` at the repo root.
+- Copy `apps/web/.env.example` to `apps/web/.env.local`.
 - Set valid values for:
   - `NEXT_PUBLIC_CONVEX_URL`
   - `NEXT_PUBLIC_REALTIME_URL`
@@ -19,9 +19,9 @@ This runbook covers the TierMaker import work from phase 5 and the deployment/po
 Open three terminals from the repo root:
 
 ```bash
+npm run dev:convex
 npm run dev:web
 npm run dev:realtime
-npx convex dev
 ```
 
 Confirm:

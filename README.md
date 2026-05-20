@@ -11,21 +11,23 @@ Project plan reference: `docs/plans/community-tier-lists-mvp.plan.md`
 
 ## Local Development
 
-1. Install dependencies:
+1. Install dependencies from the repo root:
 
 ```bash
 npm install
 ```
 
-2. Copy `.env.example` to `.env.local` and fill in the required values.
+2. Copy `apps/web/.env.example` to `apps/web/.env.local` and fill in the required values (see `docs/setup/getting-started.md`).
 
-3. Start the apps:
+3. Start Convex, web, and realtime in **three terminals** from the repo root:
 
 ```bash
+npm run dev:convex
 npm run dev:web
 npm run dev:realtime
-npx convex dev
 ```
+
+Run `npm run dev:convex` from the repo root (not bare `npx convex dev` at the root). Convex functions live under `apps/web/convex`.
 
 ## Environment Variables
 
@@ -73,6 +75,7 @@ npx convex dev
 
 ## Verification
 
+- Setup guide: `docs/setup/getting-started.md`
 - Smoke test runbook: `docs/testing/phase5-phase6-smoke-test.md`
 - Demo walkthrough: `docs/demo/mvp-demo-script.md`
 

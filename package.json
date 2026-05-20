@@ -13,7 +13,9 @@
     "test": "turbo test",
     "typecheck": "turbo typecheck",
     "dev:web": "npm run dev --workspace=apps/web",
-    "dev:realtime": "npm run dev --workspace=apps/realtime"
+    "dev:realtime": "npm run dev --workspace=apps/realtime",
+    "dev:convex": "npm run convex:dev --workspace=@community-tier-list/web",
+    "convex:deploy": "npm run convex:deploy --workspace=@community-tier-list/web"
   },
   "devDependencies": {
     "turbo": "^2"

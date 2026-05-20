@@ -2,26 +2,26 @@
 name: Community Tier Lists MVP
 overview: Full engineering plan for a pnpm monorepo "Community Tier Lists" app - a realtime tier list voting platform for Twitch streamers, built with Next.js, Convex, Socket.IO, and Auth.js, deployed to Vercel + AWS Lightsail.
 source: C:\Users\shawn\.cursor\plans\community_tier_lists_mvp_56a63a2e.plan.md
-current_focus: Phase 6 - Deployment + Polish (AWS Lightsail + Vercel)
+current_focus: Phase 6 - MVP validation and local dev polish
 todos:
   - id: phase1
     content: "Phase 1 - Foundation + Premium UI: monorepo scaffold, five design concepts, homepage routes"
-    status: pending
+    status: completed
   - id: phase2
     content: "Phase 2 - Data Model + Auth: Convex schema, mutations/queries, Auth.js + Twitch OAuth, host JWT"
-    status: pending
+    status: completed
   - id: phase3
     content: "Phase 3 - Dashboard + Session Management UI: real dashboard, create-session dialog, creator + viewer pages"
-    status: pending
+    status: completed
   - id: phase4
     content: "Phase 4 - Realtime Server + WebSockets: Socket.IO server, all handlers, client hooks, wiring"
-    status: in_progress
+    status: completed
   - id: phase5
     content: "Phase 5 - TierMaker Import: API route, UI form, failure handling"
-    status: pending
+    status: completed
   - id: phase6
     content: "Phase 6 - Deployment + Polish: Lightsail + Vercel deploy, smoke test, accessibility, README, demo script"
-    status: pending
+    status: in_progress
 isProject: false
 ---
 
