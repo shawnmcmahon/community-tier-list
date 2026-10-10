@@ -11,6 +11,7 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",
+    "test:identity": "node scripts/check-identity-regressions.mjs",
     "typecheck": "turbo typecheck",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:realtime": "npm run dev --workspace=apps/realtime",

@@ -50,6 +50,16 @@ Using September's $4.8384/720-hour charge as the hourly baseline and the deletio
 
 ## Dependency audit
 
+## Review follow-up
+
+The two P2 findings on PR #7 are addressed by establishing `ctl-viewer` on session-page responses before hydration and reconciling raw/prefixed Twitch participation records in one Convex mutation. Existing raw IDs remain canonical; duplicate records retain the earliest join time and latest vote time. Anonymous vote and connection namespaces remain unchanged.
+
+Run `npm run test:identity` with the optimized app on localhost:3100 and its configured Convex deployment. To verify production, run `npm run test:identity -- https://community-tier-list-web.vercel.app apps/web/.env.production.local`. This integration regression creates an isolated fixture, overlaps first presence/vote requests, verifies one voter after a revote and stable reload, seeds a legacy participant, and checks duplicate reconciliation and preserved metadata. It requires private configured credentials and is separate from credential-free CI tests.
+
+The repository's CI has read-only permissions and runs validation only. No review-repair hook or automation was found in the inspected project/user configuration. The installed Code Review plugin and GitHub reviewer identify findings; they do not constitute an automatic fix loop. [OpenAI documents a separate follow-up request](https://learn.chatgpt.com/docs/third-party/github#act-on-review-findings) to start a coding task. No new review automation was installed.
+
+## Dependency audit
+
 The deployment audit prompted compatible updates to Next.js 15.5.27, Auth.js 5.0.0-beta.32 and the locked dependencies. Next.js uses a patched PostCSS 8.5 release via an explicit override. A fresh `npm ci` succeeds; `npm audit --omit=dev` reports zero vulnerabilities. Five high findings remain in the development-only `eslint-config-next` → fast-glob → micromatch → braces chain. The upstream braces package has no patched release; lint operates on repository-controlled paths. Do not apply npm's suggested forced downgrade of the Next.js lint configuration as a runtime security fix.
 
 ## Recovery

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
+import { anonymousViewerId, VIEWER_COOKIE } from "@/lib/viewer-identity";
 import { ConvexError } from "convex/values";
 import { api } from "../../../../convex/_generated/api";
 import { auth } from "@/lib/auth";
@@ -26,10 +27,10 @@ export async function POST(request: Request) {
     const session = await auth();
     const twitchUserId = session?.user?.twitchUserId;
     const cookieStore = await cookies();
-    let anonymousId = cookieStore.get("ctl-viewer")?.value;
-    if (!anonymousId || !/^[a-f0-9-]{36}$/.test(anonymousId)) {
+    let anonymousId = anonymousViewerId(cookieStore.get(VIEWER_COOKIE)?.value);
+    if (!anonymousId) {
       anonymousId = randomUUID();
-      cookieStore.set("ctl-viewer", anonymousId, { httpOnly: true, sameSite: "lax", secure: new URL(request.url).protocol === "https:", path: "/", maxAge: 60 * 60 * 24 * 365 });
+      cookieStore.set(VIEWER_COOKIE, anonymousId, { httpOnly: true, sameSite: "lax", secure: new URL(request.url).protocol === "https:", path: "/", maxAge: 60 * 60 * 24 * 365 });
     }
     const voterKey = twitchUserId ? `twitch:${twitchUserId}` : `anon:${anonymousId}`;
     if (body.action === "presence") {

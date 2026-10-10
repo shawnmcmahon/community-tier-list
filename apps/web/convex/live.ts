@@ -1,6 +1,7 @@
 import { v, ConvexError } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 import { requireServerSecret } from "./lib/server_auth";
 import { validateHostCommand, validateVote, type HostCommand } from "./lib/live_rules";
 import { tierValidator } from "./lib/validators";
@@ -158,8 +159,29 @@ export const heartbeat = mutation({
     if (args.leave) return;
     const expirationJob = await ctx.scheduler.runAfter(90_000, internal.live.expireConnection, { connectionId: args.connectionId });
     await ctx.db.insert("connections", { sessionId: session._id, voterKey: args.voterKey, connectionId: args.connectionId, displayName: args.displayName.slice(0, 80), joinedAt: previous?.joinedAt ?? Date.now(), expirationJob });
-    const participant = await ctx.db.query("participation").withIndex("by_sessionId_twitchUserId", q => q.eq("sessionId", session._id).eq("twitchUserId", args.voterKey)).unique();
-    if (!participant) await ctx.db.insert("participation", { sessionId: session._id, twitchUserId: args.voterKey, joinedAt: Date.now() });
+    // Participation historically stores raw Twitch IDs. Votes/connections keep
+    // their namespaced keys; reconcile both participation spellings atomically.
+    const participationId = args.voterKey.startsWith("twitch:") ? args.voterKey.slice(7) : args.voterKey;
+    const identities = [...new Set([participationId, args.voterKey])];
+    let participant: Doc<"participation"> | null = null;
+    let joinedAt = Date.now();
+    let lastVotedAt: number | undefined;
+    for (const identity of identities) {
+      const matches = ctx.db.query("participation").withIndex("by_sessionId_twitchUserId", q => q.eq("sessionId", session._id).eq("twitchUserId", identity));
+      for await (const row of matches) {
+        joinedAt = Math.min(joinedAt, row.joinedAt);
+        if (row.lastVotedAt !== undefined) lastVotedAt = Math.max(lastVotedAt ?? row.lastVotedAt, row.lastVotedAt);
+        if (!participant) participant = row;
+        else await ctx.db.delete(row._id);
+      }
+    }
+    if (participant) {
+      if (participant.twitchUserId !== participationId || participant.joinedAt !== joinedAt || participant.lastVotedAt !== lastVotedAt) {
+        await ctx.db.patch(participant._id, { twitchUserId: participationId, joinedAt, lastVotedAt });
+      }
+    } else {
+      await ctx.db.insert("participation", { sessionId: session._id, twitchUserId: participationId, joinedAt });
+    }
   },
 });
 
