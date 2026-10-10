@@ -95,6 +95,7 @@ export function LiveSessionClient({
     distribution: initialDistribution,
   });
   const hostReady = canHost && connectionState === "connected";
+  const showHostControls = canHost && status !== "completed";
   const { placements: myPlacements, recordVote } = useMyBoard(sessionSlug, items);
   async function submitVote(tier: Tier) {
     const vote = await castVote(tier);
@@ -233,13 +234,12 @@ export function LiveSessionClient({
         </div>
       </header>
 
-      {hostNotice && !canHost ? <p role="status" className="px-4 pt-4 text-sm text-emerald-300">{hostNotice}</p> : null}
-      {hostNotice && !canHost ? <p role="status" className="px-4 pt-4 text-sm text-emerald-300">{hostNotice}</p> : null}
+      {hostNotice && !showHostControls ? <p role="status" className="px-4 pt-4 text-sm text-emerald-300">{hostNotice}</p> : null}
       <main className="relative mx-auto max-w-[1800px] px-4 py-6 lg:px-6">
         <h1 className="mb-5 text-xl font-bold sm:hidden">{title}</h1>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
           <div className="space-y-6">
-            {canHost ? (
+            {showHostControls ? (
               <HostControlPanel
                 canHost={canHost}
                 hostReady={hostReady}

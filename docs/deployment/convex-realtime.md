@@ -38,6 +38,10 @@ Current sources: [AWS Lightsail pricing](https://aws.amazon.com/lightsail/pricin
 
 Current retirement status is recorded in the deployment completion record below. Until both delete/release operations succeed, the fixed charge has not been eliminated.
 
+## Dependency audit
+
+The deployment audit prompted compatible updates to Next.js 15.5.27, Auth.js 5.0.0-beta.32 and the locked dependencies. Next.js uses a patched PostCSS 8.5 release via an explicit override. A fresh `npm ci` succeeds; `npm audit --omit=dev` reports zero vulnerabilities. Five high findings remain in the development-only `eslint-config-next` → fast-glob → micromatch → braces chain. The upstream braces package has no patched release; lint operates on repository-controlled paths. Do not apply npm's suggested forced downgrade of the Next.js lint configuration as a runtime security fix.
+
 ## Recovery
 
 The pre-migration source is commit `f2f8c4213efe8df09667e0aab4f9c3f72847a193`. Legacy Socket.IO source and its deployment files are retained. Existing data lives in Convex, not on the realtime VM. The VM's system disk contains deploy/runtime configuration; there are no project-owned additional disks or snapshots in the audited inventory.
