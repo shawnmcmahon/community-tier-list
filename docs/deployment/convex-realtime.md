@@ -7,8 +7,8 @@
 | Web/API | Vercel `community-tier-list-web`, root `apps/web` | Next.js pages, Twitch Auth.js, request-based server functions |
 | Data/realtime | `clean-oriole-790.convex.cloud` | Existing database, native subscriptions, atomic mutations, presence |
 | Twitch | Existing OAuth application | Host identity; OpenID display name/picture only |
-| AWS compute being retired | `community-tier-list-realtime-prod`, us-west-2a, `nano_3_0` | Former Socket.IO service |
-| Dedicated AWS IP being retired | `StaticIp-1`, `54.71.224.88` | Attached only to the former realtime instance |
+| AWS compute retired | `community-tier-list-realtime-prod`, us-west-2a, `nano_3_0` | Deleted after replacement validation |
+| Dedicated AWS IP retired | `StaticIp-1`, `54.71.224.88` | Released after instance deletion |
 
 The existing Vercel production configuration points to the named **development** Convex deployment. This migration deliberately preserves that database rather than silently creating an empty production one. A later production-deployment transition requires an explicit data migration.
 
@@ -36,7 +36,25 @@ Current sources: [AWS Lightsail pricing](https://aws.amazon.com/lightsail/pricin
 6. Verify anonymous voting, host authorization, reconnects, saved boards, mobile layout, and expiry against the live replacement.
 7. Only then delete the dedicated Lightsail instance and release `StaticIp-1`. Verify no project snapshots or extra disks remain. Do not touch Chess Lobby, shared hosted zones, or unrelated services.
 
-Current retirement status is recorded in the deployment completion record below. Until both delete/release operations succeed, the fixed charge has not been eliminated.
+### Completion record (2026-10-10 UTC / 2026-10-09 MDT)
+
+The patched application deployed successfully to [the stable app URL](https://community-tier-list-web.vercel.app). Production deployment `dpl_CrqaaQuVgHZ7ctMiHUU8jhfuo4k8` used application revision `c977439`. Its GitHub CI and Vercel checks passed. Real production HTTP and headless Chrome checks passed creation, nine-item staging, two independent anonymous viewers, revote deduplication, subscriptions, saved host S/audience B ranks, reload persistence, closed voting, completion, sharing, session joining and 390px mobile layout. Earlier local checks also covered offline reconnect, presence expiry, an unvoted item, and direct forged/cross-origin mutation rejection. A real Twitch password/consent round trip was not exercised; signed, short-lived Auth.js fixture cookies authenticated an isolated test account, with no application authentication bypass. TierMaker can block automated import requests; manual labels remain available.
+
+[PR #7](https://github.com/shawnmcmahon/community-tier-list/pull/7) merged as `ff4fc23e2b934fcb866e7756c2523976d9d92260`. The main-branch CI passed. The stable production alias was independently verified against Vercel deployment `dpl_Gg29ohuruc1hLNk6Ar2k2SjAGA3v`, status `READY`, with that exact main-branch Git commit. The production HTTP smoke passed again after Lightsail retirement. OAuth initiation also produced the expected `openid` scope and stable production callback, with the external authorization destination intercepted for the test; this does not replace a full Twitch login check.
+
+AWS `DeleteInstance` succeeded at **00:59:17 UTC** (operation `8993bb82-be99-4522-b1fc-94ef56d8cd61`). `ReleaseStaticIp` succeeded at **00:59:45 UTC** (operation `1f1bd524-6ef0-478f-a20b-6f0207d2e55e`). A fresh Oregon inventory at 00:59:48 UTC returned zero instances, static IPs, instance snapshots, disks and disk snapshots. The VM system disk was removed with the instance. No unused dedicated IP, snapshot or storage resource remains in that region. Shared resources, hosted zones and Chess Lobby were preserved. The obsolete `NEXT_PUBLIC_REALTIME_URL` variable was removed from Vercel's three environments. Exact operation receipts and the post-retirement inventory are saved privately as `aws-retirement.json` with the original backups.
+
+The recurring project compute charge is now removed: **$5/month before tax**, **$60/year** at the current bundle price. Against the observed September usage baseline, practical expected net savings are approximately **$4.84–$5/month**, assuming no incremental Vercel/Convex usage charges. Vercel Hobby is confirmed. Convex's account usage API returned `Default` (no approaching/exceeded/disabled warning); its paid-plan status and future quota availability were not independently verified. No plan upgrade or new paid hosting subscription was purchased. This architecture adds **$0/month fixed AWS hosting cost**, and no residual dedicated project AWS compute/IP/snapshot/storage charge was found. Existing domains and unrelated/shared account charges are excluded.
+
+Using September's $4.8384/720-hour charge as the hourly baseline and the deletion timestamp, a script estimates approximately **$3.54 before tax** avoided for the remainder of October. Already incurred October usage remains payable; this is a forward-looking prorated estimate, not a refund or a reconciled final invoice. Cost Explorer may lag the resource deletion.
+
+## Review follow-up
+
+The two P2 findings on PR #7 are addressed by establishing `ctl-viewer` on session-page responses before hydration and reconciling raw/prefixed Twitch participation records in one Convex mutation. Existing raw IDs remain canonical; duplicate records retain the earliest join time and latest vote time. Anonymous vote and connection namespaces remain unchanged.
+
+Run `npm run test:identity` with the optimized app on localhost:3100 and its configured Convex deployment. To verify production, run `npm run test:identity -- https://community-tier-list-web.vercel.app apps/web/.env.production.local`. This integration regression creates an isolated fixture, overlaps first presence/vote requests, verifies one voter after a revote and stable reload, seeds a legacy participant, and checks duplicate reconciliation and preserved metadata. It requires private configured credentials and is separate from credential-free CI tests.
+
+The repository's CI has read-only permissions and runs validation only. No review-repair hook or automation was found in the inspected project/user configuration. The installed Code Review plugin and GitHub reviewer identify findings; they do not constitute an automatic fix loop. [OpenAI documents a separate follow-up request](https://learn.chatgpt.com/docs/third-party/github#act-on-review-findings) to start a coding task. No new review automation was installed.
 
 ## Dependency audit
 
@@ -44,11 +62,23 @@ The deployment audit prompted compatible updates to Next.js 15.5.27, Auth.js 5.0
 
 ## Recovery
 
-The pre-migration source is commit `f2f8c4213efe8df09667e0aab4f9c3f72847a193`. Legacy Socket.IO source and its deployment files are retained. Existing data lives in Convex, not on the realtime VM. The VM's system disk contains deploy/runtime configuration; there are no project-owned additional disks or snapshots in the audited inventory.
+The pre-migration source is commit `f2f8c4213efe8df09667e0aab4f9c3f72847a193`. Legacy Socket.IO source and its deployment templates are retained in Git. Existing user data lives in Convex. The deleted VM's system disk, including its original realtime `.env`, Caddy state and any local runtime changes, was **not** preserved as a disk image or a file-level backup. Do not expect to recover that disk or its original configuration from the AWS inventory. The verified additional disk/snapshot inventory is empty.
 
 Private backups were saved under `C:/Users/shawn/Documents/Backups/community-tier-list/2026-10-09/`:
 - `convex-before-migration.zip` includes database and file storage.
 - `web-environment.env` contains the existing web configuration and secrets; keep it private.
 - `aws-before-retirement.json` records the instance, ports, bundle, IP, disks, and snapshot inventory.
+- `aws-retirement.json` records successful deletion/release operations and the empty post-retirement inventory.
+- `convex-before-identity-fix.zip` includes a second database/file-storage export before participant reconciliation.
 
-Prefer reverting a faulty web change while retaining the native backend. Restoring the old Socket.IO architecture requires recreating the instance/IP, deploying compatible backend functions from the old source, restoring its runtime configuration, and pointing a working DNS name to the new IP. The original realtime hostname did not resolve during this audit. A database snapshot import would overwrite newer data; never do that as a routine rollback.
+For an application incident, prefer a targeted web rollback that retains the native Convex architecture. No VM is required for this recovery. A database snapshot import would overwrite newer data; never do that as a routine code rollback.
+
+Reinstating Socket.IO is a deliberate architecture rollback that recreates paid infrastructure and requires a web revision using Socket.IO plus compatible server-authorized Convex adapters. It must **reconstruct**, rather than restore, the VM configuration:
+
+1. Use the versioned `apps/realtime/deploy/lightsail/.env.example`, `docker-compose.yml`, `Caddyfile` and `apps/realtime/Dockerfile` as the runtime templates. Review any intended changes against the retained legacy source.
+2. Recover `NEXT_PUBLIC_CONVEX_URL` and `HOST_JWT_SECRET` from the private `web-environment.env`; the realtime adapters and Convex deployment must use the same server secret. Set `CORS_ORIGIN` to the web origin that will actually use Socket.IO and `PORT=3001` as in the template.
+3. Choose a hostname you control for `REALTIME_DOMAIN` and point it to the newly allocated IP. The released `54.71.224.88` cannot be assumed recoverable, and the original realtime hostname did not resolve during this audit. Restore firewall intent from `aws-before-retirement.json`, rather than assuming the old instance survives.
+4. Let Caddy issue fresh TLS certificates using its versioned configuration. Its former certificate/account volumes were deleted and are not in the backups.
+5. Only after that replacement passes health, authorization and host/viewer checks, set `NEXT_PUBLIC_REALTIME_URL` for the Socket.IO web revision and redeploy it. The normal native web revision does not need that variable.
+
+This reconstruction describes the inputs retained for recovery; no replacement VM, DNS record or paid subscription was created as part of the retirement.
