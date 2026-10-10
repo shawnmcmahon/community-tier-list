@@ -62,11 +62,23 @@ The deployment audit prompted compatible updates to Next.js 15.5.27, Auth.js 5.0
 
 ## Recovery
 
-The pre-migration source is commit `f2f8c4213efe8df09667e0aab4f9c3f72847a193`. Legacy Socket.IO source and its deployment files are retained. Existing data lives in Convex, not on the realtime VM. The VM's system disk contains deploy/runtime configuration; there are no project-owned additional disks or snapshots in the audited inventory.
+The pre-migration source is commit `f2f8c4213efe8df09667e0aab4f9c3f72847a193`. Legacy Socket.IO source and its deployment templates are retained in Git. Existing user data lives in Convex. The deleted VM's system disk, including its original realtime `.env`, Caddy state and any local runtime changes, was **not** preserved as a disk image or a file-level backup. Do not expect to recover that disk or its original configuration from the AWS inventory. The verified additional disk/snapshot inventory is empty.
 
 Private backups were saved under `C:/Users/shawn/Documents/Backups/community-tier-list/2026-10-09/`:
 - `convex-before-migration.zip` includes database and file storage.
 - `web-environment.env` contains the existing web configuration and secrets; keep it private.
 - `aws-before-retirement.json` records the instance, ports, bundle, IP, disks, and snapshot inventory.
+- `aws-retirement.json` records successful deletion/release operations and the empty post-retirement inventory.
+- `convex-before-identity-fix.zip` includes a second database/file-storage export before participant reconciliation.
 
-Prefer reverting a faulty web change while retaining the native backend. Restoring the old Socket.IO architecture requires recreating the instance/IP, deploying compatible backend functions from the old source, restoring its runtime configuration, and pointing a working DNS name to the new IP. The original realtime hostname did not resolve during this audit. A database snapshot import would overwrite newer data; never do that as a routine rollback.
+For an application incident, prefer a targeted web rollback that retains the native Convex architecture. No VM is required for this recovery. A database snapshot import would overwrite newer data; never do that as a routine code rollback.
+
+Reinstating Socket.IO is a deliberate architecture rollback that recreates paid infrastructure and requires a web revision using Socket.IO plus compatible server-authorized Convex adapters. It must **reconstruct**, rather than restore, the VM configuration:
+
+1. Use the versioned `apps/realtime/deploy/lightsail/.env.example`, `docker-compose.yml`, `Caddyfile` and `apps/realtime/Dockerfile` as the runtime templates. Review any intended changes against the retained legacy source.
+2. Recover `NEXT_PUBLIC_CONVEX_URL` and `HOST_JWT_SECRET` from the private `web-environment.env`; the realtime adapters and Convex deployment must use the same server secret. Set `CORS_ORIGIN` to the web origin that will actually use Socket.IO and `PORT=3001` as in the template.
+3. Choose a hostname you control for `REALTIME_DOMAIN` and point it to the newly allocated IP. The released `54.71.224.88` cannot be assumed recoverable, and the original realtime hostname did not resolve during this audit. Restore firewall intent from `aws-before-retirement.json`, rather than assuming the old instance survives.
+4. Let Caddy issue fresh TLS certificates using its versioned configuration. Its former certificate/account volumes were deleted and are not in the backups.
+5. Only after that replacement passes health, authorization and host/viewer checks, set `NEXT_PUBLIC_REALTIME_URL` for the Socket.IO web revision and redeploy it. The normal native web revision does not need that variable.
+
+This reconstruction describes the inputs retained for recovery; no replacement VM, DNS record or paid subscription was created as part of the retirement.
