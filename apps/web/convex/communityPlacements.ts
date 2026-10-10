@@ -1,3 +1,4 @@
+import { requireServerSecret } from "./lib/server_auth";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -5,10 +6,12 @@ import { avgToTier, summarizeTierVotes, TIER_ORDER, type Tier } from "./lib/scor
 
 export const computeForItem = mutation({
   args: {
+    serverSecret: v.string(),
     sessionId: v.id("sessions"),
     itemId: v.id("items"),
   },
   handler: async (ctx, args) => {
+    requireServerSecret(args.serverSecret);
     const itemVotes = await ctx.db
       .query("votes")
       .withIndex("by_itemId", (q) => q.eq("itemId", args.itemId))

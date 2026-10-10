@@ -1,13 +1,16 @@
+import { requireServerSecret } from "./lib/server_auth";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const upsert = mutation({
   args: {
+    serverSecret: v.string(),
     twitchUserId: v.string(),
     sessionId: v.id("sessions"),
     lastVotedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    requireServerSecret(args.serverSecret);
     const now = Date.now();
     const existing = await ctx.db
       .query("participation")

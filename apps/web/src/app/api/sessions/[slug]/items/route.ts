@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import * as apiModule from "../../../../../../convex/_generated/api.js";
 import { auth } from "@/lib/auth";
-import { getServerConvexClient } from "@/lib/convex-server";
+import { getServerConvexClient, getServerSecret } from "@/lib/convex-server";
 import type { SessionItem } from "@/lib/live-session";
 
 const { api } = apiModule;
@@ -18,6 +18,8 @@ type RouteProps = {
 };
 
 export async function POST(request: Request, { params }: RouteProps) {
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const session = await auth();
   const twitchUserId = session?.user?.twitchUserId;
 
@@ -32,7 +34,10 @@ export async function POST(request: Request, { params }: RouteProps) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const labels = (body.labels ?? []).map((label) => label.trim()).filter(Boolean);
+  if (!Array.isArray(body?.labels) || body.labels.some(label => typeof label !== "string" || label.length > 120) || body.labels.length > 250) {
+    return NextResponse.json({ error: "Use up to 250 text labels, each at most 120 characters." }, { status: 400 });
+  }
+  const labels = body.labels.map((label) => label.trim()).filter(Boolean);
   if (labels.length === 0) {
     return NextResponse.json({ error: "At least one label is required" }, { status: 400 });
   }
@@ -56,6 +61,7 @@ export async function POST(request: Request, { params }: RouteProps) {
   }
 
   await convex.mutation((api as any).items.createBatch, {
+      serverSecret: getServerSecret(),
     sessionId: sessionDoc._id,
     items: labels.map((label) => ({
       label,

@@ -19,15 +19,15 @@ const buttonVariants = cva(
         ghost: "text-slate-900 hover:bg-slate-100 active:bg-slate-200",
         link: "text-slate-900 underline-offset-4 hover:underline",
         tier_s:
-          "bg-amber-500 text-white shadow-sm hover:bg-amber-600 active:bg-amber-700",
+          "bg-tier-s text-gray-950 shadow-sm hover:brightness-110 active:brightness-90",
         tier_a:
-          "bg-red-500 text-white shadow-sm hover:bg-red-600 active:bg-red-700",
+          "bg-tier-a text-gray-950 shadow-sm hover:brightness-110 active:brightness-90",
         tier_b:
-          "bg-violet-500 text-white shadow-sm hover:bg-violet-600 active:bg-violet-700",
+          "bg-tier-b text-gray-950 shadow-sm hover:brightness-110 active:brightness-90",
         tier_c:
-          "bg-blue-500 text-white shadow-sm hover:bg-blue-600 active:bg-blue-700",
+          "bg-tier-c text-gray-950 shadow-sm hover:brightness-110 active:brightness-90",
         tier_d:
-          "bg-gray-500 text-white shadow-sm hover:bg-gray-600 active:bg-gray-700",
+          "bg-tier-d text-gray-950 shadow-sm hover:brightness-110 active:brightness-90",
       },
       size: {
         default: "h-10 px-4 py-2",

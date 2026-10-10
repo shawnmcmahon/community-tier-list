@@ -5,28 +5,21 @@ import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { useHostSession } from "@/hooks/useHostSession";
 import { useKeyboardVote } from "@/hooks/useKeyboardVote";
 import { useMyBoard } from "@/hooks/useMyBoard";
-import { usePresence } from "@/hooks/usePresence";
-import { useSessionState } from "@/hooks/useSessionState";
-import { useSocket } from "@/hooks/useSocket";
-import { useVoting } from "@/hooks/useVoting";
+import { useLiveSession } from "@/hooks/useLiveSession";
 import {
   type SessionItem,
   type SessionStatus,
   type TierPlacement,
   type VoteDistribution,
 } from "@/lib/live-session";
-import { TIER_CONFIG, TIERS, type Tier } from "@/lib/mock-data";
+import { TIERS, type Tier } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
-const neonTierColors: Record<Tier, { bar: string; glow: string }> = {
-  S: { bar: "bg-amber-500", glow: "shadow-amber-500/30" },
-  A: { bar: "bg-rose-500", glow: "shadow-rose-500/30" },
-  B: { bar: "bg-violet-500", glow: "shadow-violet-500/30" },
-  C: { bar: "bg-cyan-500", glow: "shadow-cyan-500/30" },
-  D: { bar: "bg-gray-500", glow: "shadow-gray-500/30" },
+const tierColors: Record<Tier, { bar: string; glow: string }> = {
+  S: { bar: "bg-tier-s", glow: "" }, A: { bar: "bg-tier-a", glow: "" },
+  B: { bar: "bg-tier-b", glow: "" }, C: { bar: "bg-tier-c", glow: "" }, D: { bar: "bg-tier-d", glow: "" },
 };
 
 type PlacementWithItem = {
@@ -43,14 +36,11 @@ type LiveSessionClientProps = {
   initialStatus: SessionStatus;
   initialVoteWindowOpen: boolean;
   initialCurrentStagedItemId: string | null;
-  initialViewerCount: number;
   initialItems: SessionItem[];
   initialStreamerPlacements: TierPlacement[];
   initialCommunityPlacements: TierPlacement[];
   initialDistribution: VoteDistribution;
   canHost: boolean;
-  viewerTwitchUserId?: string;
-  viewerDisplayName?: string;
 };
 
 function placementItems(
@@ -86,75 +76,35 @@ export function LiveSessionClient({
   initialStatus,
   initialVoteWindowOpen,
   initialCurrentStagedItemId,
-  initialViewerCount,
   initialItems,
   initialStreamerPlacements,
   initialCommunityPlacements,
   initialDistribution,
   canHost,
-  viewerTwitchUserId,
-  viewerDisplayName,
 }: LiveSessionClientProps) {
-  const { socket, connectionError, connectionState } = useSocket();
   const {
-    title,
-    status,
-    voteWindowOpen,
-    currentStagedItemId,
-    items,
-    streamerPlacements,
-    communityPlacements,
-    sessionError,
-    setItems,
-  } = useSessionState({
-    socket,
-    sessionSlug,
-    viewerTwitchUserId,
-    viewerDisplayName,
-    initialTitle,
-    initialStatus,
-    initialVoteWindowOpen,
-    initialCurrentStagedItemId,
-    initialItems,
-    initialStreamerPlacements,
-    initialCommunityPlacements,
+    title, status, voteWindowOpen, currentStagedItemId, items,
+    streamerPlacements, communityPlacements, distribution, viewerCount, recentJoins,
+    connectionState, connectionError, hostError, isWorking, voteMessage, isSubmittingVote,
+    setLive, complete, stageItem, unstageItem, openVoting, closeVoting, finalizeItem,
+    addItems, importTierMaker, submitVote: castVote,
+  } = useLiveSession(sessionSlug, {
+    title: initialTitle, status: initialStatus, voteWindowOpen: initialVoteWindowOpen,
+    currentStagedItemId: initialCurrentStagedItemId, items: initialItems,
+    streamerPlacements: initialStreamerPlacements, communityPlacements: initialCommunityPlacements,
+    distribution: initialDistribution,
   });
-  const { viewerCount, recentJoins } = usePresence({
-    socket,
-    initialViewerCount,
-  });
+  const hostReady = canHost && connectionState === "connected";
   const { placements: myPlacements, recordVote } = useMyBoard(sessionSlug, items);
-  const { distribution, voteMessage, isSubmittingVote, submitVote } = useVoting({
-    socket,
-    stagedItemId: currentStagedItemId,
-    initialDistribution,
-    viewerTwitchUserId,
-    viewerDisplayName,
-    onVoteSuccess: recordVote,
-  });
-  const {
-    hostReady,
-    hostError,
-    isWorking,
-    setLive,
-    complete,
-    stageItem,
-    unstageItem,
-    openVoting,
-    closeVoting,
-    finalizeItem,
-    addItems,
-    importTierMaker,
-  } = useHostSession({
-    socket,
-    sessionSlug,
-    canHost,
-  });
+  async function submitVote(tier: Tier) {
+    const vote = await castVote(tier);
+    if (vote) recordVote(vote.itemId, vote.tier);
+  }
 
   const [newItemsText, setNewItemsText] = useState("");
   const [tierMakerUrl, setTierMakerUrl] = useState("");
   const [hostNotice, setHostNotice] = useState<string | null>(null);
-  const interactionError = connectionError ?? sessionError;
+  const interactionError = connectionError;
   const stagedItem = useMemo(
     () => items.find((item) => item._id === currentStagedItemId) ?? null,
     [currentStagedItemId, items],
@@ -180,7 +130,7 @@ export function LiveSessionClient({
   );
 
   useKeyboardVote({
-    enabled: Boolean(stagedItem) && voteWindowOpen && status === "live" && !isSubmittingVote,
+    enabled: Boolean(stagedItem) && voteWindowOpen && status === "live" && !isSubmittingVote && connectionState === "connected",
     onVote: submitVote,
   });
 
@@ -200,7 +150,6 @@ export function LiveSessionClient({
       if (!nextItems) {
         return;
       }
-      setItems(nextItems);
       setNewItemsText("");
       setHostNotice(`Added ${labels.length} item${labels.length === 1 ? "" : "s"} to the pool.`);
     } catch {}
@@ -219,7 +168,6 @@ export function LiveSessionClient({
         return;
       }
 
-      setItems(payload.items);
       setTierMakerUrl("");
       setHostNotice(
         payload.importTitle
@@ -231,14 +179,14 @@ export function LiveSessionClient({
 
   return (
     <div className="relative min-h-screen bg-black text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#ff00ff04_1px,transparent_1px),linear-gradient(to_bottom,#00ffff04_1px,transparent_1px)] bg-[size:60px_60px]" />
+
 
       <header className="sticky top-0 z-50 border-b border-gray-800 bg-black/90 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-[1800px] items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 to-pink-600 text-xs font-black text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-tier-s text-xs font-black text-gray-950"
             >
               TL
             </Link>
@@ -258,15 +206,16 @@ export function LiveSessionClient({
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button size="sm" variant="secondary" onClick={() => { void navigator.clipboard.writeText(window.location.href).then(() => setHostNotice("Session link copied.")).catch(() => setHostNotice("Copy the session URL from your address bar.")); }}>Share session</Button>
             <div className="flex items-center gap-2 text-sm">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-fuchsia-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-fuchsia-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
               </span>
-              <span className="font-bold tabular-nums text-fuchsia-400">
+              <span className="font-bold tabular-nums text-amber-400">
                 {viewerCount.toLocaleString()}
               </span>
-              <span className="hidden text-gray-600 sm:inline">joined</span>
+              <span className="hidden text-gray-400 sm:inline">online</span>
             </div>
             <span
               className={cn(
@@ -274,7 +223,7 @@ export function LiveSessionClient({
                 status === "live"
                   ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-400 shadow-emerald-500/10"
                   : status === "completed"
-                    ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-400"
+                    ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-400"
                     : "border-gray-400/30 bg-gray-400/10 text-gray-400",
               )}
             >
@@ -284,7 +233,10 @@ export function LiveSessionClient({
         </div>
       </header>
 
+      {hostNotice && !canHost ? <p role="status" className="px-4 pt-4 text-sm text-emerald-300">{hostNotice}</p> : null}
+      {hostNotice && !canHost ? <p role="status" className="px-4 pt-4 text-sm text-emerald-300">{hostNotice}</p> : null}
       <main className="relative mx-auto max-w-[1800px] px-4 py-6 lg:px-6">
+        <h1 className="mb-5 text-xl font-bold sm:hidden">{title}</h1>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
           <div className="space-y-6">
             {canHost ? (
@@ -329,8 +281,13 @@ export function LiveSessionClient({
               </div>
             ) : null}
 
-            <motion.div
-              className="rounded-2xl border border-fuchsia-500/20 bg-gray-900/80 p-6 backdrop-blur"
+            {status === "completed" ? (
+              <section className="rounded-2xl border border-gray-700 bg-gray-900 p-6">
+                <h2 className="text-xl font-bold text-tier-d">Session complete</h2>
+                <p className="mt-2 text-sm text-gray-300">The final rankings are saved. Compare the streamer and community boards below.</p>
+              </section>
+            ) : <motion.div
+              className="rounded-2xl border border-amber-500/20 bg-gray-900/80 p-6 backdrop-blur"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
@@ -352,10 +309,8 @@ export function LiveSessionClient({
 
               <div className="flex flex-col gap-6 sm:flex-row">
                 <div className="flex shrink-0 flex-col items-center gap-3 sm:w-48">
-                  <div className="flex h-32 w-32 items-center justify-center rounded-2xl border border-fuchsia-500/20 bg-gray-800 shadow-lg shadow-fuchsia-500/5">
-                    <span className="text-4xl font-black text-fuchsia-600/60">
-                      {stagedItem?.label[0] ?? "?"}
-                    </span>
+                  <div className="flex h-32 w-32 items-center justify-center rounded-2xl border border-amber-500/20 bg-gray-800 shadow-lg shadow-amber-500/5">
+                    <ItemImage key={stagedItem?._id ?? "waiting"} imageUrl={stagedItem?.imageUrl} label={stagedItem?.label ?? "Waiting"} className="h-full w-full rounded-2xl" />
                   </div>
                   <span className="text-center font-bold text-white">
                     {stagedItem?.label ?? "Waiting for the host to stage the next item"}
@@ -369,11 +324,11 @@ export function LiveSessionClient({
                       distribution.totalVotes > 0
                         ? Math.round((count / distribution.totalVotes) * 100)
                         : 0;
-                    const colors = neonTierColors[tier];
+                    const colors = tierColors[tier];
                     return (
                       <div key={tier} className="flex items-center gap-3">
                         <span
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-sm font-black ${TIER_CONFIG[tier].color}`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-black ${colors.bar} text-gray-950`}
                         >
                           {tier}
                         </span>
@@ -386,7 +341,7 @@ export function LiveSessionClient({
                               transition={{ duration: 0.6, ease: "easeOut" }}
                             >
                               {pct > 8 ? (
-                                <span className="text-xs font-black text-white">{pct}%</span>
+                                <span className="text-xs font-black text-gray-950">{pct}%</span>
                               ) : null}
                             </motion.div>
                           </div>
@@ -419,7 +374,7 @@ export function LiveSessionClient({
                       !voteWindowOpen ||
                       status !== "live" ||
                       isSubmittingVote ||
-                      Boolean(interactionError)
+                      Boolean(interactionError) || connectionState !== "connected"
                     }
                     onClick={() => submitVote(tier)}
                     aria-label={`Vote ${tier} tier`}
@@ -432,13 +387,13 @@ export function LiveSessionClient({
                 ))}
               </div>
 
-              <div className="mt-4 text-sm text-gray-500">
+              <div role="status" aria-live="polite" className="mt-4 text-sm text-gray-400">
                 {interactionError ??
                   (!voteWindowOpen || status !== "live"
                     ? "Voting is closed right now."
                     : voteMessage ?? "Vote with the buttons above or use 1-5 / S-A-B-C-D.")}
               </div>
-            </motion.div>
+            </motion.div>}
 
             {!canHost ? (
               <motion.div
@@ -487,7 +442,7 @@ export function LiveSessionClient({
                   Community&apos;s Board
                 </h3>
                 <span className="text-xs font-bold text-gray-500">
-                  Based on {distribution.totalVotes.toLocaleString()} live votes
+                  {status === "completed" ? "Final audience rankings" : "Ranked when each item is finalized"}
                 </span>
               </div>
               <TierBoard items={communityBoardItems} />
@@ -519,7 +474,7 @@ export function LiveSessionClient({
                     transition={{ duration: 0.3, delay: 0.3 + i * 0.05 }}
                   >
                     <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-gray-700 bg-gray-900">
-                      <span className="text-lg font-black text-gray-600">{item.label[0]}</span>
+                      <ItemImage imageUrl={item.imageUrl} label={item.label} className="h-full w-full rounded-lg" />
                     </div>
                     <span className="w-full truncate text-center text-[11px] font-medium leading-tight text-gray-500">
                       {item.label}
@@ -587,15 +542,15 @@ function HostControlPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-cyan-500/20 bg-cyan-950/20 p-6">
+    <section className="rounded-2xl border border-gray-700 bg-gray-900 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-cyan-300">
+          <h2 className="text-sm font-black uppercase tracking-widest text-amber-200">
             Host Controls
           </h2>
           <p className="mt-1 text-sm text-gray-400">
             {hostError ??
-              (hostReady ? "Realtime host controls connected." : "Connecting host controls...")}
+              (hostReady ? "Host controls ready." : "Connecting host controls...")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -624,12 +579,13 @@ function HostControlPanel({
             Add Items
           </h3>
           <textarea
+            aria-label="Item labels"
             value={newItemsText}
             onChange={(event) => setNewItemsText(event.target.value)}
             placeholder={"One item label per line"}
             className="min-h-32 w-full rounded-xl border border-gray-800 bg-black/40 px-3 py-2 text-sm text-white outline-none ring-0 placeholder:text-gray-600"
           />
-          <Button disabled={isWorking} onClick={onAddItems}>
+          <Button disabled={isWorking || status === "completed" || !newItemsText.trim()} onClick={onAddItems}>
             Add To Pool
           </Button>
           <div className="rounded-xl border border-gray-800 bg-black/30 p-3">
@@ -651,7 +607,7 @@ function HostControlPanel({
             </p>
             <Button
               className="mt-3"
-              disabled={isWorking || tierMakerUrl.trim().length === 0}
+              disabled={isWorking || status === "completed" || tierMakerUrl.trim().length === 0}
               onClick={onImportTierMaker}
               variant="secondary"
             >
@@ -669,10 +625,10 @@ function HostControlPanel({
               {poolItems.length === 0 ? (
                 <span className="text-sm text-gray-500">No pool items yet.</span>
               ) : null}
-              {poolItems.slice(0, 8).map((item) => (
+              {poolItems.map((item) => (
                 <Button
                   key={item._id}
-                  disabled={!hostReady || isWorking || Boolean(stagedItem)}
+                  disabled={!hostReady || isWorking || status !== "live" || Boolean(stagedItem)}
                   onClick={() => onStageItem(item._id)}
                   variant="secondary"
                 >
@@ -739,8 +695,7 @@ function TierBoard({
   return (
     <div className="space-y-1.5">
       {TIERS.map((tier) => {
-        const config = TIER_CONFIG[tier];
-        const colors = neonTierColors[tier];
+        const colors = tierColors[tier];
         const tierItems = items.filter((item) => item.tier === tier);
         return (
           <div
@@ -752,16 +707,15 @@ function TierBoard({
             <div
               className={cn(
                 "flex w-14 shrink-0 items-center justify-center border-r border-gray-800 font-black text-lg",
-                config.color,
-                `${colors.bar}/20`,
+                "text-gray-950",
+                colors.bar,
               )}
-              style={{ backgroundColor: "color-mix(in srgb, transparent, currentColor 10%)" }}
             >
               {tier}
             </div>
             <div className="flex flex-1 flex-wrap items-center gap-2 p-2">
               {tierItems.length === 0 ? (
-                <span className="px-2 text-xs italic text-gray-700">Empty</span>
+                <span className="px-2 text-xs italic text-gray-500">Empty</span>
               ) : null}
               {tierItems.map((item) => (
                 <div
@@ -769,7 +723,7 @@ function TierBoard({
                   className="flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-800/60 px-3 py-1.5"
                 >
                   <div className="flex h-6 w-6 items-center justify-center rounded bg-gray-900 text-xs font-black text-gray-500">
-                    {item.label[0]}
+                    <ItemImage imageUrl={item.imageUrl} label={item.label} className="h-full w-full rounded" />
                   </div>
                   <span className="text-xs font-semibold text-gray-300">{item.label}</span>
                 </div>
@@ -780,4 +734,13 @@ function TierBoard({
       })}
     </div>
   );
+}
+
+function ItemImage({ imageUrl, label, className }: { imageUrl?: string; label: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+  return imageUrl && imageUrl !== "/placeholder.svg" && !failed ? (
+    // TierMaker image hosts vary; use a native image with a graceful fallback.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={imageUrl} alt={label} className={cn("object-cover", className)} loading="lazy" onError={() => setFailed(true)} />
+  ) : <span className={cn("flex items-center justify-center bg-gray-800 font-black text-gray-300", className)}>{label[0]}</span>;
 }

@@ -75,25 +75,25 @@ const { httpServer } = createRealtimeServer({
       })) as VoteDistribution;
     },
     async upsertParticipation(input) {
-      await convex.mutation((api as any).participation.upsert, input);
+      await convex.mutation((api as any).participation.upsert, { ...input, serverSecret: process.env.HOST_JWT_SECRET ?? "" });
     },
     async updateSessionStatus(input) {
-      return (await convex.mutation((api as any).sessions.updateStatus, input)) as SessionDoc;
+      return (await convex.mutation((api as any).sessions.updateStatus, { ...input, serverSecret: process.env.HOST_JWT_SECRET ?? "" })) as SessionDoc;
     },
     async setStagedItem(input) {
-      return (await convex.mutation((api as any).sessions.setStagedItem, input)) as SessionDoc;
+      return (await convex.mutation((api as any).sessions.setStagedItem, { ...input, serverSecret: process.env.HOST_JWT_SECRET ?? "" })) as SessionDoc;
     },
     async updateItemStatus(input) {
-      return (await convex.mutation((api as any).items.updateStatus, input)) as SessionItem;
+      return (await convex.mutation((api as any).items.updateStatus, { ...input, serverSecret: process.env.HOST_JWT_SECRET ?? "" })) as SessionItem;
     },
     async upsertStreamerPlacement(input) {
-      return (await convex.mutation((api as any).streamerPlacements.upsert, input)) as TierPlacement[];
+      return (await convex.mutation((api as any).streamerPlacements.upsert, { ...input, serverSecret: process.env.HOST_JWT_SECRET ?? "" })) as TierPlacement[];
     },
     async computeCommunityPlacements(input) {
-      return (await convex.mutation((api as any).communityPlacements.computeForItem, input)) as TierPlacement[];
+      return (await convex.mutation((api as any).communityPlacements.computeForItem, { ...input, serverSecret: process.env.HOST_JWT_SECRET ?? "" })) as TierPlacement[];
     },
     async upsertVote(input) {
-      await convex.mutation((api as any).votes.upsert, input);
+      await convex.mutation((api as any).votes.upsert, { ...input, serverSecret: process.env.HOST_JWT_SECRET ?? "" });
     },
   },
 });

@@ -34,7 +34,7 @@ export function Nav({ variant = "light", className }: NavProps) {
             className={cn(
               "flex h-8 w-8 items-center justify-center rounded-lg font-black text-sm",
               isDark
-                ? "bg-gradient-to-br from-fuchsia-600 to-pink-600 text-white"
+                ? "bg-gradient-to-br from-amber-600 to-orange-600 text-white"
                 : "bg-slate-900 text-white"
             )}
           >
@@ -60,7 +60,7 @@ export function Nav({ variant = "light", className }: NavProps) {
               className={cn(
                 "px-3 py-2 text-sm font-medium rounded-lg transition-colors",
                 isDark
-                  ? "text-gray-400 hover:text-fuchsia-400 hover:bg-fuchsia-500/10"
+                  ? "text-gray-400 hover:text-amber-400 hover:bg-amber-500/10"
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
               )}
             >
@@ -76,7 +76,7 @@ export function Nav({ variant = "light", className }: NavProps) {
               size="sm"
               className={cn(
                 isDark &&
-                  "border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/10 hover:text-fuchsia-300 hover:border-fuchsia-400/50"
+                  "border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 hover:border-amber-400/50"
               )}
             >
               Sign in
@@ -86,7 +86,7 @@ export function Nav({ variant = "light", className }: NavProps) {
             <Button
               size="sm"
               className={cn(
-                isDark && "bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white hover:from-fuchsia-500 hover:to-pink-500 shadow-sm shadow-fuchsia-500/20"
+                isDark && "bg-amber-300 text-white hover:from-amber-500 hover:to-orange-500 shadow-sm shadow-amber-500/20"
               )}
             >
               Get Started
@@ -140,7 +140,7 @@ export function Nav({ variant = "light", className }: NavProps) {
               href={link.href}
               className={cn(
                 "block px-3 py-2 text-sm font-medium rounded-lg",
-                isDark ? "text-gray-400 hover:bg-fuchsia-500/10 hover:text-fuchsia-400" : "text-slate-600 hover:bg-slate-100"
+                isDark ? "text-gray-400 hover:bg-amber-500/10 hover:text-amber-400" : "text-slate-600 hover:bg-slate-100"
               )}
               onClick={() => setMobileOpen(false)}
             >

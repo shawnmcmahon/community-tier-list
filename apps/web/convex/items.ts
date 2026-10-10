@@ -1,3 +1,4 @@
+import { requireServerSecret } from "./lib/server_auth";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -5,6 +6,7 @@ import { itemSourceValidator, itemStatusValidator } from "./lib/validators";
 
 export const createBatch = mutation({
   args: {
+    serverSecret: v.string(),
     sessionId: v.id("sessions"),
     items: v.array(
       v.object({
@@ -16,10 +18,16 @@ export const createBatch = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    requireServerSecret(args.serverSecret);
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.status === "completed") throw new Error("This session cannot accept items.");
+    if (!args.items.length || args.items.some(item => !item.label.trim() || item.label.length > 120)) throw new Error("Use item labels between 1 and 120 characters.");
     const existing = await ctx.db
       .query("items")
       .withIndex("by_sessionId", (q) => q.eq("sessionId", args.sessionId))
       .collect();
+
+    if (existing.length + args.items.length > 250) throw new Error("Sessions are limited to 250 items.");
 
     let nextOrderIndex = existing.length;
     const insertedIds = [];
@@ -56,10 +64,12 @@ export const listBySession = query({
 
 export const updateStatus = mutation({
   args: {
+    serverSecret: v.string(),
     itemId: v.id("items"),
     status: itemStatusValidator,
   },
   handler: async (ctx, args) => {
+    requireServerSecret(args.serverSecret);
     const item = await ctx.db.get(args.itemId);
     if (!item) {
       throw new Error("Item not found");
@@ -72,10 +82,12 @@ export const updateStatus = mutation({
 
 export const reorder = mutation({
   args: {
+    serverSecret: v.string(),
     sessionId: v.id("sessions"),
     orderedItemIds: v.array(v.id("items")),
   },
   handler: async (ctx, args) => {
+    requireServerSecret(args.serverSecret);
     const items = await ctx.db
       .query("items")
       .withIndex("by_sessionId", (q) => q.eq("sessionId", args.sessionId))

@@ -2,20 +2,24 @@ import NextAuth from "next-auth";
 import Twitch from "next-auth/providers/twitch";
 
 import * as apiModule from "../../convex/_generated/api.js";
-import { getServerConvexClient } from "@/lib/convex-server";
+import { getServerConvexClient, getServerSecret } from "@/lib/convex-server";
 
 const { api } = apiModule;
+
+const twitch = Twitch({
+  clientId: process.env.AUTH_TWITCH_ID ?? "",
+  clientSecret: process.env.AUTH_TWITCH_SECRET ?? "",
+});
+// Override the provider's default email scope/claim: the app needs identity only.
+twitch.authorization = {
+  params: { scope: "openid", claims: { id_token: { picture: null, preferred_username: null } } },
+};
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
-  providers: [
-    Twitch({
-      clientId: process.env.AUTH_TWITCH_ID ?? "",
-      clientSecret: process.env.AUTH_TWITCH_SECRET ?? "",
-    }),
-  ],
+  providers: [twitch],
   callbacks: {
     async signIn({ user, account, profile }) {
       const twitchUserId =
@@ -34,6 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       const convex = getServerConvexClient();
       await convex.mutation((api as any).users.upsertFromAuth, {
+      serverSecret: getServerSecret(),
         twitchUserId,
         twitchDisplayName,
         twitchProfileImageUrl: user.image ?? undefined,
