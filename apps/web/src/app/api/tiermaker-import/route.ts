@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import * as apiModule from "../../../../convex/_generated/api.js";
 import { auth } from "@/lib/auth";
-import { getServerConvexClient } from "@/lib/convex-server";
+import { getServerConvexClient, getServerSecret } from "@/lib/convex-server";
 import type { SessionItem } from "@/lib/live-session";
 import { fetchTierMakerImport, TierMakerImportError } from "@/lib/tiermaker";
 
@@ -14,6 +14,8 @@ type TierMakerImportBody = {
 };
 
 export async function POST(request: Request) {
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   try {
     const session = await auth();
     const twitchUserId = session?.user?.twitchUserId;
@@ -29,8 +31,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
 
-    const sessionSlug = body.sessionSlug?.trim();
-    const tiermakerUrl = body.tiermakerUrl?.trim();
+    const sessionSlug = typeof body?.sessionSlug === "string" ? body.sessionSlug.trim() : "";
+    const tiermakerUrl = typeof body?.tiermakerUrl === "string" ? body.tiermakerUrl.trim() : "";
 
     if (!sessionSlug) {
       return NextResponse.json({ error: "sessionSlug is required" }, { status: 400 });
@@ -66,6 +68,7 @@ export async function POST(request: Request) {
     }
 
     await convex.mutation((api as any).items.createBatch, {
+      serverSecret: getServerSecret(),
       sessionId: sessionDoc._id,
       items: imported.items.map((item) => ({
         label: item.label,

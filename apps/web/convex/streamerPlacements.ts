@@ -1,3 +1,4 @@
+import { requireServerSecret } from "./lib/server_auth";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -6,12 +7,14 @@ import { tierValidator } from "./lib/validators";
 
 export const upsert = mutation({
   args: {
+    serverSecret: v.string(),
     sessionId: v.id("sessions"),
     itemId: v.id("items"),
     tier: tierValidator,
     targetPosition: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    requireServerSecret(args.serverSecret);
     const placements = await ctx.db
       .query("streamerPlacements")
       .withIndex("by_sessionId", (q) => q.eq("sessionId", args.sessionId))

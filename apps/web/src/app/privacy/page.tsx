@@ -61,7 +61,7 @@ export default function PrivacyPage() {
           <Section title="OAuth Scopes">
             <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6">
               <div className="flex items-center gap-3 mb-3">
-                <code className="rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/20 px-3 py-1 text-sm font-mono font-bold text-fuchsia-400">
+                <code className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1 text-sm font-mono font-bold text-amber-400">
                   openid
                 </code>
                 <span className="text-sm text-gray-500">
@@ -78,14 +78,14 @@ export default function PrivacyPage() {
 
           <Section title="Third-Party Services">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5 hover:border-fuchsia-500/20 transition-colors">
+              <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5 hover:border-amber-500/20 transition-colors">
                 <h4 className="font-bold text-white mb-1">Convex</h4>
                 <p className="text-sm text-gray-400">
                   Cloud database for sessions, items, votes, and user profiles.
                   Data stored in Convex&apos;s infrastructure.
                 </p>
               </div>
-              <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5 hover:border-cyan-500/20 transition-colors">
+              <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-5 hover:border-emerald-500/20 transition-colors">
                 <h4 className="font-bold text-white mb-1">Twitch</h4>
                 <p className="text-sm text-gray-400">
                   Authentication provider via OAuth 2.0 / OpenID Connect. We
@@ -97,8 +97,9 @@ export default function PrivacyPage() {
 
           <Section title="Anonymous Viewers">
             <p className="text-sm text-gray-400 leading-relaxed">
-              Viewers can vote without signing in. Anonymous votes use a locally
-              generated UUID stored in your browser&apos;s localStorage. No
+              Viewers can vote without signing in. Anonymous votes use a random
+              identifier in an HTTP-only browser cookie. Your personal board is
+              saved in localStorage on this browser. No
               personal information is collected from anonymous voters. If you
               later sign in with Twitch, your anonymous votes remain separate.
             </p>

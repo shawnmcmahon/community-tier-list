@@ -1,101 +1,45 @@
-# Phase 5 And 6 Smoke Test
+# MVP smoke test
 
-This runbook covers the TierMaker import work from phase 5 and the deployment/polish work from phase 6.
+## Validation recorded on 2026-10-09
 
-## Prerequisites
+The browser test used the production Next.js build against the actual hosted Convex deployment. An isolated smoke-test host used a short-lived Auth.js cookie generated with the real local secret; this tests application authorization without adding a login bypass. It does **not** complete a real Twitch user/password/consent round trip.
 
-- Copy `apps/web/.env.example` to `apps/web/.env.local`.
-- Set valid values for:
-  - `NEXT_PUBLIC_CONVEX_URL`
-  - `NEXT_PUBLIC_REALTIME_URL`
-  - `HOST_JWT_SECRET`
-  - `AUTH_SECRET`
-  - `AUTH_TWITCH_ID`
-  - `AUTH_TWITCH_SECRET`
-- Install dependencies with `npm install`.
+Checks passed:
+- Dashboard form creates a session and navigates to its host page.
+- Nine manually added items synchronize; the ninth item is stageable.
+- Independent anonymous Chrome contexts vote by button and keyboard.
+- Two voters produce two votes; changing S to A keeps two votes, with A=1, D=1, average=2.5.
+- Closing voting disables controls; server-side closed-session writes are rejected.
+- Finalizing gives the streamer an S placement and the audience a B placement.
+- An unvoted item gets no fabricated community rank.
+- Unstage/restage, offline/online reconnect, reload, and personal-board persistence work.
+- Completing closes voting and preserves final boards after reload.
+- Presence deduplicates identities, cleans up closing browsers, and expires lost connections within its 90-second lease.
+- Mobile at 390×844 has no horizontal overflow; traditional tier colors and neutral surfaces were visually inspected.
+- Anonymous host commands (401), invalid tiers (400), cross-origin writes (403), and forged direct Convex mutations are rejected.
+- Root checks: typecheck, lint, 26 tests, optimized Next.js build.
 
-## Local Startup
+Screenshots and private browser state are under ignored `output/playwright/`. Never commit authentication state.
 
-Open three terminals from the repo root:
+## Repeat the core browser flow
 
-```bash
-npm run dev:convex
-npm run dev:web
-npm run dev:realtime
-```
+1. Start `npm run dev:convex` and `npm run dev:web` with the matching server secret configured.
+2. Sign in with Twitch and create a session.
+3. Add at least nine labels and share the link with two separate anonymous browser contexts.
+4. Go live; stage the ninth item; open voting.
+5. Vote S in one viewer and D using keyboard 5 in the other. Change the first vote to A. Expect two votes and a B community result.
+6. Close voting; verify viewers cannot vote. Finalize the host's choice as S.
+7. Stage/unstage another item, interrupt and restore a viewer's network, then confirm updated state and the personal board.
+8. Finalize an unvoted item; it must not acquire an invented community rank.
+9. Complete, reload, and verify final boards. Close browsers and allow up to 90 seconds for lost connections to expire.
+10. Check at mobile width and tab through buttons/forms.
 
-Confirm:
+For a local isolated host fixture, run `node scripts/prepare-e2e.mjs http://localhost:3100` and load the private `output/playwright/host-state.json` with Playwright CLI. `scripts/check-smoke.mjs` verifies the intermediate cloud tally and rejected writes; `scripts/verify-smoke.mjs` verifies completion and cleanup for the recorded scenario.
 
-- web responds at `http://localhost:3000`
-- realtime health check responds at `http://localhost:3001/health`
-- Convex is running and serving the configured deployment URL
+## TierMaker import
 
-## Phase 5 Test: TierMaker Import
+Try an invalid/non-template URL and verify a readable validation error. Try a direct `https://tiermaker.com/create/...` template. If Cloudflare blocks it, verify the manual-label fallback remains usable. Parser tests cover imports, duplicate images, invalid URLs, and bot-challenge pages. Live imports cannot bypass TierMaker's bot protection.
 
-1. Sign in with Twitch and open the dashboard.
-2. Create a new session and open the host session page.
-3. In `Host Controls`, paste a direct TierMaker `https://tiermaker.com/create/...` URL.
-4. Click `Import TierMaker`.
-5. Verify:
-   - a success notice appears
-   - imported items show up in the pool
-   - the item count increases
-6. Try an invalid URL such as `https://example.com/foo`.
-7. Verify a clear error is shown.
-8. Try a non-create TierMaker URL such as `https://tiermaker.com/categories/anime`.
-9. Verify a clear validation error is shown.
-10. If TierMaker serves a Cloudflare challenge, verify the host sees the fallback message telling them to use manual labels.
+## Live deployment check
 
-## Phase 6 Test: Realtime And Deployment Readiness
-
-1. With a host session open, click `Go Live`.
-2. Open the same session in a second browser or incognito window as a viewer.
-3. Stage an item, open voting, and cast votes from the viewer.
-4. Verify:
-   - the vote distribution updates live
-   - the viewer count changes
-   - staging changes sync between windows
-5. Finalize the item into a tier and verify both boards update.
-6. Complete the session and verify the status changes to `completed`.
-
-## Production Config Check
-
-### AWS Lightsail Realtime
-
-- Follow `docs/deployment/lightsail-realtime.md`.
-- Create one small Ubuntu Lightsail instance.
-- Attach a static IP.
-- Open ports `22`, `80`, and `443`.
-- Point a DNS record such as `realtime.yourdomain.com` to that instance.
-- Configure:
-  - `NEXT_PUBLIC_CONVEX_URL`
-  - `HOST_JWT_SECRET`
-  - `CORS_ORIGIN=https://your-web-app.vercel.app`
-  - `REALTIME_DOMAIN=realtime.yourdomain.com`
-- Deploy with:
-
-```bash
-docker compose -f apps/realtime/deploy/lightsail/docker-compose.yml up -d --build
-```
-
-- Verify `https://realtime.yourdomain.com/health` returns `{ "ok": true }`.
-
-### Vercel Web
-
-- Create a Vercel project with root directory `apps/web`.
-- Add env vars:
-  - `NEXT_PUBLIC_CONVEX_URL`
-  - `NEXT_PUBLIC_REALTIME_URL`
-  - `HOST_JWT_SECRET`
-  - `AUTH_SECRET`
-  - `AUTH_TWITCH_ID`
-  - `AUTH_TWITCH_SECRET`
-- Deploy the branch.
-- Verify login, dashboard load, session creation, and live voting against the Lightsail-hosted realtime URL.
-
-## Accessibility Checks
-
-- Navigate the dashboard and host controls by keyboard only.
-- Confirm the TierMaker input is focusable and labeled.
-- Confirm error and success states are announced and visually obvious.
-- Confirm status badges and connection notices remain readable at 200% zoom.
+Repeat the same host/viewer flow at [the production app](https://community-tier-list-web.vercel.app) before retiring Lightsail. Production validation and executed resource retirement are recorded in [the deployment runbook](../deployment/convex-realtime.md).

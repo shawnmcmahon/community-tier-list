@@ -10,9 +10,12 @@
 
 import type * as communityPlacements from "../communityPlacements.js";
 import type * as items from "../items.js";
+import type * as lib_live_rules from "../lib/live_rules.js";
 import type * as lib_placement from "../lib/placement.js";
 import type * as lib_scoring from "../lib/scoring.js";
+import type * as lib_server_auth from "../lib/server_auth.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as live from "../live.js";
 import type * as participation from "../participation.js";
 import type * as sessions from "../sessions.js";
 import type * as streamerPlacements from "../streamerPlacements.js";
@@ -28,9 +31,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   communityPlacements: typeof communityPlacements;
   items: typeof items;
+  "lib/live_rules": typeof lib_live_rules;
   "lib/placement": typeof lib_placement;
   "lib/scoring": typeof lib_scoring;
+  "lib/server_auth": typeof lib_server_auth;
   "lib/validators": typeof lib_validators;
+  live: typeof live;
   participation: typeof participation;
   sessions: typeof sessions;
   streamerPlacements: typeof streamerPlacements;

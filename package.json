@@ -17,6 +17,11 @@
     "dev:convex": "npm run convex:dev --workspace=@community-tier-list/web",
     "convex:deploy": "npm run convex:deploy --workspace=@community-tier-list/web"
   },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.23"
+    }
+  },
   "devDependencies": {
     "turbo": "^2"
   }

@@ -1,85 +1,47 @@
 # Community Tier Lists
 
-Realtime tier list voting for Twitch streamers. Hosts create sessions, stage items, let viewers vote live with S/A/B/C/D tiers, and compare streamer placements against the community board.
+Live tier-list voting for Twitch streamers. Hosts create a session, add items, share a link, and compare their rankings with the audience. Viewers can vote without signing in.
 
-Project plan reference: `docs/plans/community-tier-lists-mvp.plan.md`
+## Current architecture
 
-## Apps
+- **Next.js 15 / Vercel:** pages, Twitch Auth.js login, and authenticated request-based API functions.
+- **Convex:** durable sessions, atomic host/vote mutations, compact live tallies, native subscriptions, and expiring presence leases.
+- **No always-on realtime server is required.** The legacy Socket.IO workspace is retained for recovery/reference, but the web app no longer connects to it.
 
-- `apps/web`: Next.js 15 frontend, Auth.js Twitch login, API routes, Convex-backed session data
-- `apps/realtime`: Socket.IO server for presence, voting, host controls, and board updates
+The classic palette runs from red S through orange A, amber B, yellow C, and green D on neutral charcoal boards.
 
-## Local Development
+## Development
 
-1. Install dependencies from the repo root:
+Use Node.js 24. From the repository root:
 
-```bash
-npm install
+```sh
+npm ci
 ```
 
-2. Copy `apps/web/.env.example` to `apps/web/.env.local` and fill in the required values (see `docs/setup/getting-started.md`).
+Copy `apps/web/.env.example` to `apps/web/.env.local`, configure Twitch and Convex, and set the same `HOST_JWT_SECRET` in the web environment and Convex deployment. See [setup](docs/setup/getting-started.md).
 
-3. Start Convex, web, and realtime in **three terminals** from the repo root:
+Start two terminals:
 
-```bash
+```sh
 npm run dev:convex
 npm run dev:web
-npm run dev:realtime
 ```
 
-Run `npm run dev:convex` from the repo root (not bare `npx convex dev` at the root). Convex functions live under `apps/web/convex`.
+## Checks
 
-## Environment Variables
+```sh
+npm run typecheck
+npm test
+npm run lint
+npm run build
+```
 
-### Shared
+GitHub Actions runs these checks on pull requests and main. Browser verification is documented in [the smoke-test runbook](docs/testing/phase5-phase6-smoke-test.md).
 
-- `NEXT_PUBLIC_CONVEX_URL`
-- `HOST_JWT_SECRET`
+## Deployment and cost
 
-### Web
+Keep the existing Vercel project root at `apps/web` and deploy Convex functions to the deployment in `NEXT_PUBLIC_CONVEX_URL`. Server secrets must never use a `NEXT_PUBLIC_` prefix.
 
-- `NEXT_PUBLIC_REALTIME_URL`
-- `AUTH_SECRET`
-- `AUTH_TWITCH_ID`
-- `AUTH_TWITCH_SECRET`
+[Migration and recovery instructions](docs/deployment/convex-realtime.md) describe replacement verification and retirement of the dedicated $5/month Lightsail instance. A merged PR alone does not stop cloud charges.
 
-### Realtime
-
-- `PORT`
-- `CORS_ORIGIN`
-
-## Deployment
-
-### Web On Vercel
-
-- Set the Vercel project root directory to `apps/web`.
-- Use `apps/web/vercel.json`.
-- Configure:
-  - `NEXT_PUBLIC_CONVEX_URL`
-  - `NEXT_PUBLIC_REALTIME_URL`
-  - `HOST_JWT_SECRET`
-  - `AUTH_SECRET`
-  - `AUTH_TWITCH_ID`
-  - `AUTH_TWITCH_SECRET`
-
-### Realtime On AWS Lightsail
-
-- Use `apps/realtime/Dockerfile`.
-- Use the Lightsail deployment files in `apps/realtime/deploy/lightsail/`.
-- Follow `docs/deployment/lightsail-realtime.md`.
-- Configure:
-  - `NEXT_PUBLIC_CONVEX_URL`
-  - `HOST_JWT_SECRET`
-  - `CORS_ORIGIN`
-  - `REALTIME_DOMAIN`
-
-## Verification
-
-- Setup guide: `docs/setup/getting-started.md`
-- Smoke test runbook: `docs/testing/phase5-phase6-smoke-test.md`
-- Demo walkthrough: `docs/demo/mvp-demo-script.md`
-
-## Notes
-
-- TierMaker imports are server-side only and can be blocked by TierMaker's Cloudflare challenge. The host UI falls back to manual item entry with a clear error.
-- The realtime server exposes `GET /health` for deployment checks and reverse-proxy health verification.
+TierMaker imports are optional and can encounter a Cloudflare challenge. Manual labels remain available, with a clear import error. The AI template generator and Twitch chat voting remain outside this MVP.

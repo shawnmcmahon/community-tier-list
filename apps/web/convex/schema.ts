@@ -59,7 +59,13 @@ export default defineSchema({
     castAt: v.number(),
   })
     .index("by_itemId_voterKey", ["itemId", "voterKey"])
-    .index("by_itemId", ["itemId"]),
+    .index("by_itemId", ["itemId"])
+    .index("by_sessionId", ["sessionId"]),
+
+  voteTallies: defineTable({
+    itemId: v.id("items"), S: v.number(), A: v.number(), B: v.number(), C: v.number(), D: v.number(),
+    totalVotes: v.number(), totalScore: v.number(),
+  }).index("by_item", ["itemId"]),
 
   communityPlacements: defineTable({
     sessionId: v.id("sessions"),
@@ -81,4 +87,14 @@ export default defineSchema({
   })
     .index("by_twitchUserId", ["twitchUserId"])
     .index("by_sessionId_twitchUserId", ["sessionId", "twitchUserId"]),
+
+  connections: defineTable({
+    sessionId: v.id("sessions"),
+    voterKey: v.string(),
+    connectionId: v.string(),
+    displayName: v.string(),
+    joinedAt: v.number(),
+    expirationJob: v.id("_scheduled_functions"),
+  }).index("by_session", ["sessionId"]).index("by_connection", ["connectionId"])
+    .index("by_actor", ["sessionId", "voterKey"]),
 });

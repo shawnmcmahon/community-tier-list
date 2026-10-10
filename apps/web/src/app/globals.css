@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
 
   --color-background: #ffffff;
   --color-foreground: #0a0a0a;
@@ -20,11 +20,18 @@
   --color-slate-900: #0f172a;
   --color-slate-950: #020617;
 
-  --color-tier-s: #f59e0b;
-  --color-tier-a: #ef4444;
-  --color-tier-b: #8b5cf6;
-  --color-tier-c: #3b82f6;
-  --color-tier-d: #6b7280;
+  --color-tier-s: #ff7f7f;
+  --color-tier-a: #ffbf7f;
+  --color-tier-b: #ffdf7f;
+  --color-tier-c: #ffff7f;
+  --color-tier-d: #bfff7f;
+
+  --color-gray-950: #151515;
+  --color-gray-900: #202020;
+  --color-gray-800: #303030;
+  --color-gray-700: #454545;
+  --color-gray-600: #989898;
+  --color-gray-500: #a3a3a3;
 }
 
 @layer base {
@@ -38,5 +45,18 @@
     background: var(--color-background);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  button, input, textarea, a { touch-action: manipulation; }
+  input:focus-visible, textarea:focus-visible, a:focus-visible {
+    outline: 2px solid #ffdf7f;
+    outline-offset: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

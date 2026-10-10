@@ -26,7 +26,7 @@ export function Footer({ variant = "light", className }: FooterProps) {
               className={cn(
                 "flex h-7 w-7 items-center justify-center rounded-md font-black text-xs",
                 isDark
-                  ? "bg-gradient-to-br from-fuchsia-600/30 to-pink-600/30 text-fuchsia-400"
+                  ? "bg-gradient-to-br from-amber-600/30 to-orange-600/30 text-amber-400"
                   : "bg-slate-200 text-slate-600"
               )}
             >
@@ -44,7 +44,7 @@ export function Footer({ variant = "light", className }: FooterProps) {
               href="/privacy"
               className={cn(
                 "transition-colors",
-                isDark ? "hover:text-fuchsia-400" : "hover:text-slate-900"
+                isDark ? "hover:text-amber-400" : "hover:text-slate-900"
               )}
             >
               Privacy
@@ -53,7 +53,7 @@ export function Footer({ variant = "light", className }: FooterProps) {
               href="/dashboard"
               className={cn(
                 "transition-colors",
-                isDark ? "hover:text-fuchsia-400" : "hover:text-slate-900"
+                isDark ? "hover:text-amber-400" : "hover:text-slate-900"
               )}
             >
               Dashboard

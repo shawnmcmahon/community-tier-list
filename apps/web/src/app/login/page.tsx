@@ -4,13 +4,17 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const [sessionLink, setSessionLink] = useState("");
+  const [joinError, setJoinError] = useState("");
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ff00ff06_1px,transparent_1px),linear-gradient(to_bottom,#00ffff06_1px,transparent_1px)] bg-[size:60px_60px]" />
-      <div className="absolute top-1/4 left-1/3 h-[500px] w-[500px] bg-fuchsia-600/15 blur-[150px] rounded-full" />
-      <div className="absolute bottom-1/4 right-1/3 h-[400px] w-[400px] bg-cyan-600/15 blur-[150px] rounded-full" />
+      <div className="absolute top-1/4 left-1/3 h-[500px] w-[500px] bg-amber-600/15 blur-[150px] rounded-full" />
+      <div className="absolute bottom-1/4 right-1/3 h-[400px] w-[400px] bg-emerald-600/15 blur-[150px] rounded-full" />
 
       <motion.div
         className="relative w-full max-w-md"
@@ -20,7 +24,7 @@ export default function LoginPage() {
       >
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-600 to-pink-600 text-white font-black text-sm shadow-lg shadow-fuchsia-500/20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-600 to-orange-600 text-white font-black text-sm shadow-lg shadow-amber-500/20">
               TL
             </div>
           </Link>
@@ -32,7 +36,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-fuchsia-500/20 bg-gray-900/80 backdrop-blur-xl p-8 shadow-2xl shadow-fuchsia-500/5">
+        <div className="rounded-2xl border border-amber-500/20 bg-gray-900/80 backdrop-blur-xl p-8 shadow-2xl shadow-amber-500/5">
           <Button
             size="xl"
             className="w-full rounded-xl bg-[#9146FF] font-bold uppercase tracking-wider text-white shadow-lg shadow-purple-500/30 hover:bg-[#7C3AED]"
@@ -45,23 +49,33 @@ export default function LoginPage() {
           </Button>
 
           <div className="mt-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent" />
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
             <span className="text-xs text-gray-600 uppercase tracking-wider font-bold">
               or
             </span>
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
           </div>
 
           <div className="mt-6">
-            <Link href="/s/best-fps-2025">
+            <form onSubmit={event => {
+              event.preventDefault();
+              const value = sessionLink.trim();
+              const slug = value.includes("/s/") ? value.split("/s/").at(-1)?.split(/[?#]/)[0] : value;
+              if (!slug || !/^[a-z0-9-]{1,100}$/.test(slug)) { setJoinError("Paste a session link or its name from the host."); return; }
+              setJoinError(""); router.push(`/s/${slug}`);
+            }}>
+              <label htmlFor="join-session" className="mb-2 block text-sm font-semibold text-gray-300">Have a session link?</label>
+              <input id="join-session" className="mb-3 h-11 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 text-white" placeholder="Paste your host's session link" value={sessionLink} onChange={event => setSessionLink(event.target.value)} required />
               <Button
+                type="submit"
                 variant="outline"
                 size="lg"
-                className="w-full border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300 hover:border-cyan-400/40 rounded-xl font-bold uppercase tracking-wider"
+                className="w-full border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-400/40 rounded-xl font-bold uppercase tracking-wider"
               >
                 Join a Session as Viewer
               </Button>
-            </Link>
+              {joinError ? <p role="alert" className="mt-2 text-sm text-red-300">{joinError}</p> : null}
+            </form>
           </div>
 
           <div className="mt-8 rounded-xl bg-white/[0.03] border border-white/5 p-5">
@@ -101,7 +115,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-gray-600">
           By signing in, you agree to our{" "}
-          <Link href="/privacy" className="text-fuchsia-400 hover:text-fuchsia-300 underline underline-offset-4">
+          <Link href="/privacy" className="text-amber-400 hover:text-amber-300 underline underline-offset-4">
             Privacy Policy
           </Link>
         </p>

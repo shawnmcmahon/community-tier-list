@@ -1,3 +1,4 @@
+import { requireServerSecret } from "./lib/server_auth";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -14,11 +15,14 @@ function slugify(input: string): string {
 
 export const create = mutation({
   args: {
+    serverSecret: v.string(),
     hostTwitchUserId: v.string(),
     title: v.string(),
     slug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    requireServerSecret(args.serverSecret);
+    if (!args.title.trim() || args.title.length > 120) throw new Error("Use a title between 1 and 120 characters.");
     const host = await ctx.db
       .query("users")
       .withIndex("by_twitchUserId", (q) => q.eq("twitchUserId", args.hostTwitchUserId))
@@ -89,7 +93,7 @@ export const listByHost = query({
 
     return ctx.db
       .query("sessions")
-      .filter((q) => q.eq(q.field("hostUserId"), host._id))
+      .withIndex("by_hostUserId_status", q => q.eq("hostUserId", host._id))
       .collect();
   },
 });
@@ -132,7 +136,7 @@ export const listDashboardByHost = query({
             .collect(),
           ctx.db
             .query("votes")
-            .filter((q) => q.eq(q.field("sessionId"), session._id))
+            .withIndex("by_sessionId", q => q.eq("sessionId", session._id))
             .collect(),
           ctx.db
             .query("participation")
@@ -155,10 +159,12 @@ export const listDashboardByHost = query({
 
 export const updateStatus = mutation({
   args: {
+    serverSecret: v.string(),
     sessionId: v.id("sessions"),
     status: sessionStatusValidator,
   },
   handler: async (ctx, args) => {
+    requireServerSecret(args.serverSecret);
     const session = await ctx.db.get(args.sessionId);
     if (!session) {
       throw new Error("Session not found");
@@ -175,11 +181,13 @@ export const updateStatus = mutation({
 
 export const setStagedItem = mutation({
   args: {
+    serverSecret: v.string(),
     sessionId: v.id("sessions"),
     itemId: v.optional(v.id("items")),
     voteWindowOpen: v.boolean(),
   },
   handler: async (ctx, args) => {
+    requireServerSecret(args.serverSecret);
     const session = await ctx.db.get(args.sessionId);
     if (!session) {
       throw new Error("Session not found");

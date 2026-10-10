@@ -17,15 +17,11 @@ export function useMyBoard(sessionSlug: string, items: SessionItem[]) {
   const [votes, setVotes] = useState<PersonalVoteRecord[]>([]);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(storageKey(sessionSlug));
-    if (!stored) {
-      setVotes([]);
-      return;
-    }
-
     try {
+      const stored = window.localStorage.getItem(storageKey(sessionSlug));
+      if (!stored) { setVotes([]); return; }
       const parsed = JSON.parse(stored) as PersonalVoteRecord[];
-      setVotes(Array.isArray(parsed) ? parsed : []);
+      setVotes(Array.isArray(parsed) ? parsed.filter(vote => vote && typeof vote.itemId === "string" && ["S", "A", "B", "C", "D"].includes(vote.tier)) : []);
     } catch {
       setVotes([]);
     }
@@ -41,7 +37,8 @@ export function useMyBoard(sessionSlug: string, items: SessionItem[]) {
           updatedAt: Date.now(),
         },
       ];
-      window.localStorage.setItem(storageKey(sessionSlug), JSON.stringify(next));
+      try { window.localStorage.setItem(storageKey(sessionSlug), JSON.stringify(next)); }
+      catch { /* Private browsing/storage limits must not prevent voting. */ }
       return next;
     });
   }

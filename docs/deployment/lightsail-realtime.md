@@ -1,5 +1,7 @@
 # Realtime Deployment On AWS Lightsail
 
+> Legacy recovery reference. The active web app now uses [Convex realtime](convex-realtime.md); it does not require this instance or a Socket.IO process. Do not provision a new Lightsail server for normal deployment.
+
 This is the primary phase 6 deployment path for the realtime Socket.IO server.
 
 ## Target Architecture

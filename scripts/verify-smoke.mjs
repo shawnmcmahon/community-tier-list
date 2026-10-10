@@ -1,0 +1,24 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import { parse } from "dotenv";
+import { ConvexHttpClient } from "convex/browser";
+import { makeFunctionReference } from "convex/server";
+
+const env = parse(fs.readFileSync("apps/web/.env.local"));
+const client = new ConvexHttpClient(env.NEXT_PUBLIC_CONVEX_URL);
+const fixture = JSON.parse(fs.readFileSync("output/playwright/fixture.json"));
+const { slug } = fixture;
+const snapshot = await client.query(makeFunctionReference("live:snapshot"), { slug });
+assert.equal(snapshot.status, "completed");
+assert.equal(snapshot.currentStagedItemId, null);
+assert.equal(snapshot.voteWindowOpen, false);
+assert.equal(snapshot.streamerPlacements.length, 2);
+assert.equal(snapshot.communityPlacements.length, 1, "Unvoted item must not receive an invented community rank");
+assert.equal(snapshot.communityPlacements[0].tier, "B");
+const presence = await client.query(makeFunctionReference("live:presence"), { slug });
+assert.equal(presence.viewerCount, 0, "Closed browser connections must leave or expire");
+const response = await fetch(`${fixture.origin}/api/live`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "vote", slug, itemId: fixture.stagedItemId, tier: "S" }) });
+assert.equal(response.status, 400, "A completed session must reject a vote server-side");
+await assert.rejects(client.mutation(makeFunctionReference("live:command"), { serverSecret: env.HOST_JWT_SECRET, slug, hostTwitchUserId: fixture.twitchUserId, command: "start" }), /complete/);
+fs.writeFileSync("output/playwright/completed-result.json", JSON.stringify({ snapshot, presence }));
+console.log("PASS: completion, immutable results, community B rank, no fabricated unvoted rank, closed-session rejection and presence cleanup.");

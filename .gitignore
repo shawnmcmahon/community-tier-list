@@ -9,3 +9,5 @@ convex/_generated/
 *.tsbuildinfo
 .vercel
 .fly
+output/
+.playwright-cli/

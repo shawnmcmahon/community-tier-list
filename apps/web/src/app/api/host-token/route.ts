@@ -12,6 +12,8 @@ type HostTokenRequestBody = {
 };
 
 export async function POST(request: Request) {
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const session = await auth();
   const twitchUserId = session?.user?.twitchUserId;
 

@@ -4,7 +4,7 @@ import * as apiModule from "../../../../convex/_generated/api.js";
 import { LiveSessionClient } from "@/components/session/LiveSessionClient";
 import { auth } from "@/lib/auth";
 import { getServerConvexClient } from "@/lib/convex-server";
-import { emptyVoteDistribution, type SessionItem, type TierPlacement, type VoteDistribution } from "@/lib/live-session";
+import { type SessionItem, type TierPlacement, type VoteDistribution } from "@/lib/live-session";
 
 const { api } = apiModule;
 
@@ -27,7 +27,7 @@ export default async function SessionPage({ params }: SessionPageProps) {
     notFound();
   }
 
-  const [items, streamerPlacements, communityPlacements, hostUser, distribution, participationCount] =
+  const [items, streamerPlacements, communityPlacements, hostUser, distribution] =
     await Promise.all([
       convex.query((api as any).items.listBySession, {
         sessionId: sessionDoc._id,
@@ -41,14 +41,7 @@ export default async function SessionPage({ params }: SessionPageProps) {
       convex.query((api as any).users.getById, {
         userId: sessionDoc.hostUserId,
       }) as Promise<{ twitchDisplayName?: string; twitchUserId?: string } | null>,
-      sessionDoc.currentStagedItemId
-        ? (convex.query((api as any).votes.distributionByItem, {
-            itemId: sessionDoc.currentStagedItemId,
-          }) as Promise<VoteDistribution>)
-        : Promise.resolve(emptyVoteDistribution()),
-      convex.query((api as any).participation.countBySession, {
-        sessionId: sessionDoc._id,
-      }) as Promise<number>,
+      convex.query((api as any).live.distribution, { slug }) as Promise<VoteDistribution>,
     ]);
 
   const canHost =
@@ -63,14 +56,11 @@ export default async function SessionPage({ params }: SessionPageProps) {
       initialStatus={sessionDoc.status}
       initialVoteWindowOpen={sessionDoc.voteWindowOpen}
       initialCurrentStagedItemId={sessionDoc.currentStagedItemId ?? null}
-      initialViewerCount={participationCount}
       initialItems={items}
       initialStreamerPlacements={streamerPlacements}
       initialCommunityPlacements={communityPlacements}
       initialDistribution={distribution}
       canHost={canHost}
-      viewerTwitchUserId={viewerSession?.user?.twitchUserId}
-      viewerDisplayName={viewerSession?.user?.twitchDisplayName}
     />
   );
 }
