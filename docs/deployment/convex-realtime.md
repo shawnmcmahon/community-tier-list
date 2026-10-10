@@ -7,8 +7,8 @@
 | Web/API | Vercel `community-tier-list-web`, root `apps/web` | Next.js pages, Twitch Auth.js, request-based server functions |
 | Data/realtime | `clean-oriole-790.convex.cloud` | Existing database, native subscriptions, atomic mutations, presence |
 | Twitch | Existing OAuth application | Host identity; OpenID display name/picture only |
-| AWS compute being retired | `community-tier-list-realtime-prod`, us-west-2a, `nano_3_0` | Former Socket.IO service |
-| Dedicated AWS IP being retired | `StaticIp-1`, `54.71.224.88` | Attached only to the former realtime instance |
+| AWS compute retired | `community-tier-list-realtime-prod`, us-west-2a, `nano_3_0` | Deleted after replacement validation |
+| Dedicated AWS IP retired | `StaticIp-1`, `54.71.224.88` | Released after instance deletion |
 
 The existing Vercel production configuration points to the named **development** Convex deployment. This migration deliberately preserves that database rather than silently creating an empty production one. A later production-deployment transition requires an explicit data migration.
 
@@ -36,7 +36,17 @@ Current sources: [AWS Lightsail pricing](https://aws.amazon.com/lightsail/pricin
 6. Verify anonymous voting, host authorization, reconnects, saved boards, mobile layout, and expiry against the live replacement.
 7. Only then delete the dedicated Lightsail instance and release `StaticIp-1`. Verify no project snapshots or extra disks remain. Do not touch Chess Lobby, shared hosted zones, or unrelated services.
 
-Current retirement status is recorded in the deployment completion record below. Until both delete/release operations succeed, the fixed charge has not been eliminated.
+### Completion record (2026-10-10 UTC / 2026-10-09 MDT)
+
+The patched application deployed successfully to [the stable app URL](https://community-tier-list-web.vercel.app). Production deployment `dpl_CrqaaQuVgHZ7ctMiHUU8jhfuo4k8` used application revision `c977439`. Its GitHub CI and Vercel checks passed. Real production HTTP and headless Chrome checks passed creation, nine-item staging, two independent anonymous viewers, revote deduplication, subscriptions, saved host S/audience B ranks, reload persistence, closed voting, completion, sharing, session joining and 390px mobile layout. Earlier local checks also covered offline reconnect, presence expiry, an unvoted item, and direct forged/cross-origin mutation rejection. A real Twitch password/consent round trip was not exercised; signed, short-lived Auth.js fixture cookies authenticated an isolated test account, with no application authentication bypass. TierMaker can block automated import requests; manual labels remain available.
+
+[PR #7](https://github.com/shawnmcmahon/community-tier-list/pull/7) merged as `ff4fc23e2b934fcb866e7756c2523976d9d92260`. The main-branch CI passed. The stable production alias was independently verified against Vercel deployment `dpl_Gg29ohuruc1hLNk6Ar2k2SjAGA3v`, status `READY`, with that exact main-branch Git commit. The production HTTP smoke passed again after Lightsail retirement. OAuth initiation also produced the expected `openid` scope and stable production callback, with the external authorization destination intercepted for the test; this does not replace a full Twitch login check.
+
+AWS `DeleteInstance` succeeded at **00:59:17 UTC** (operation `8993bb82-be99-4522-b1fc-94ef56d8cd61`). `ReleaseStaticIp` succeeded at **00:59:45 UTC** (operation `1f1bd524-6ef0-478f-a20b-6f0207d2e55e`). A fresh Oregon inventory at 00:59:48 UTC returned zero instances, static IPs, instance snapshots, disks and disk snapshots. The VM system disk was removed with the instance. No unused dedicated IP, snapshot or storage resource remains in that region. Shared resources, hosted zones and Chess Lobby were preserved. The obsolete `NEXT_PUBLIC_REALTIME_URL` variable was removed from Vercel's three environments. Exact operation receipts and the post-retirement inventory are saved privately as `aws-retirement.json` with the original backups.
+
+The recurring project compute charge is now removed: **$5/month before tax**, **$60/year** at the current bundle price. Against the observed September usage baseline, practical expected net savings are approximately **$4.84–$5/month**, assuming no incremental Vercel/Convex usage charges. Vercel Hobby is confirmed. Convex's account usage API returned `Default` (no approaching/exceeded/disabled warning); its paid-plan status and future quota availability were not independently verified. No plan upgrade or new paid hosting subscription was purchased. This architecture adds **$0/month fixed AWS hosting cost**, and no residual dedicated project AWS compute/IP/snapshot/storage charge was found. Existing domains and unrelated/shared account charges are excluded.
+
+Using September's $4.8384/720-hour charge as the hourly baseline and the deletion timestamp, a script estimates approximately **$3.54 before tax** avoided for the remainder of October. Already incurred October usage remains payable; this is a forward-looking prorated estimate, not a refund or a reconciled final invoice. Cost Explorer may lag the resource deletion.
 
 ## Dependency audit
 
