@@ -48,8 +48,6 @@ The recurring project compute charge is now removed: **$5/month before tax**, **
 
 Using September's $4.8384/720-hour charge as the hourly baseline and the deletion timestamp, a script estimates approximately **$3.54 before tax** avoided for the remainder of October. Already incurred October usage remains payable; this is a forward-looking prorated estimate, not a refund or a reconciled final invoice. Cost Explorer may lag the resource deletion.
 
-## Dependency audit
-
 ## Review follow-up
 
 The two P2 findings on PR #7 are addressed by establishing `ctl-viewer` on session-page responses before hydration and reconciling raw/prefixed Twitch participation records in one Convex mutation. Existing raw IDs remain canonical; duplicate records retain the earliest join time and latest vote time. Anonymous vote and connection namespaces remain unchanged.
